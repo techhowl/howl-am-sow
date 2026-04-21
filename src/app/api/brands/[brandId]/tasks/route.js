@@ -1,0 +1,121 @@
+// src/app/api/brands/[brandId]/tasks/route.js
+import { NextResponse } from 'next/server';
+import { auth } from '@/lib/auth/auth';
+import  connectDB  from '@/lib/db/mongoose';
+import Task from '@/lib/db/models/Task';
+import BrandMember from '@/lib/db/models/BrandMember';
+import Notification from '@/lib/db/models/Notification';
+import { canPerformAction } from '@/lib/auth/permissions';
+
+export async function GET(request, { params }) {
+  try {
+    const session = await auth();
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const { brandId } = await params;
+    await connectDB();
+
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get('status');
+    const priority = searchParams.get('priority');
+    const assignee = searchParams.get('assignee');
+
+    const filter = { brandId };
+    if (status) filter.status = status;
+    if (priority) filter.priority = priority;
+    if (assignee) filter.assignees = assignee;
+
+    const tasks = await Task.find(filter)
+      .populate('assignees', 'name email role avatar')
+      .populate('deliverableId', 'name type')
+      .populate('createdBy', 'name email')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return NextResponse.json({ tasks });
+  } catch (err) {
+    console.error('GET /tasks error:', err);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}
+
+export async function POST(request, { params }) {
+  try {
+    const session = await auth();
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    if (!canPerformAction(session.user.role, 'create_tasks')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const { brandId } = await params;
+    await connectDB();
+
+    const body = await request.json();
+    const {
+      title,
+      description,
+      deliverableId,
+      assignees = [],
+      priority = 'medium',
+      copyRequired = true,
+      designRequired = true,
+      internalDeadline,
+      externalDeadline,
+    } = body;
+
+    if (!title?.trim()) {
+      return NextResponse.json({ error: 'Title is required' }, { status: 400 });
+    }
+
+    // Determine starting status based on skip flags
+    let initialStatus = 'copy_wip';
+    if (!copyRequired) {
+      initialStatus = designRequired ? 'design_wip' : 'internal_review';
+    }
+
+    const task = await Task.create({
+      brandId,
+      deliverableId: deliverableId || null,
+      title: title.trim(),
+      description: description?.trim() || '',
+      assignees,
+      priority,
+      status: initialStatus,
+      copyRequired,
+      designRequired,
+      internalDeadline: internalDeadline || null,
+      externalDeadline: externalDeadline || null,
+      revisionCount: 0,
+      createdBy: session.user.id,
+    });
+
+    // Notify all assignees
+    if (assignees.length > 0) {
+      const notifications = assignees
+        .filter((id) => id !== session.user.id)
+        .map((recipientId) => ({
+          recipientId,
+          type: 'task_assigned',
+          message: `You were assigned to task: ${task.title}`,
+          entityType: 'task',
+          entityId: task._id,
+          brandId,
+        }));
+      if (notifications.length > 0) {
+        await Notification.insertMany(notifications);
+      }
+    }
+
+    const populated = await Task.findById(task._id)
+      .populate('assignees', 'name email role avatar')
+      .populate('deliverableId', 'name type')
+      .populate('createdBy', 'name email')
+      .lean();
+
+    return NextResponse.json({ task: populated }, { status: 201 });
+  } catch (err) {
+    console.error('POST /tasks error:', err);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}
