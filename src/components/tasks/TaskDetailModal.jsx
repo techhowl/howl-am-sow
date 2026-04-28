@@ -2,25 +2,168 @@
 'use client';
 
 import { useState } from 'react';
-import { X, ChevronRight, Trash2, Edit2, Check, RotateCcw, Link2 } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Trash2, Edit2, Check, RotateCcw, Link2, Calendar } from 'lucide-react';
+import Portal from '@/components/shared/Portal';
 import PriorityBadge from '@/components/shared/PriorityBadge';
 import DeadlineBadge from '@/components/shared/DeadlineBadge';
 import RejectionDialog from '@/components/tasks/RejectionDialog';
-import RouteRejectionDialog from '@/components/tasks/RouteRejectionDialog';
 import CommentThread from '@/components/tasks/CommentThread';
 import ActivityFeed from '@/components/tasks/ActivityFeed';
-import { STATUS_LABELS, VALID_TRANSITIONS } from '@/lib/constants/tasks';
 import { format } from 'date-fns';
 
-const PRIORITY_OPTIONS = ['high', 'medium', 'low'];
-const PRIORITY_LABELS = { high: 'High', medium: 'Medium', low: 'Low' };
+const VALID_TRANSITIONS = {
+  copy_wip:        ['video_wip', 'design_wip', 'internal_review'],
+  video_wip:       ['design_wip', 'internal_review'],
+  design_wip:      ['internal_review'],
+  internal_review: ['sent_to_client'],
+  sent_to_client:  ['approved', 'rejected'],
+  approved:        ['live'],
+  rejected:        [],
+  live:            [],
+};
 
+const BACKWARD_TRANSITIONS = {
+  video_wip:       'copy_wip',
+  design_wip:      'video_wip',
+  internal_review: 'design_wip',
+  sent_to_client:  'internal_review',
+  approved:        'sent_to_client',
+};
+
+const STATUS_LABELS = {
+  copy_wip:        'Copy WIP',
+  video_wip:       'Video WIP',
+  design_wip:      'Design WIP',
+  internal_review: 'Internal Review',
+  sent_to_client:  'Sent to Client',
+  approved:        'Approved',
+  rejected:        'Rejected',
+  live:            'Live',
+};
+
+const STATUS_COLORS = {
+  copy_wip:        { bg: '#faf5ff', color: '#7c3aed', border: '#e9d5ff' },
+  video_wip:       { bg: '#f5f3ff', color: '#6d28d9', border: '#ddd6fe' },
+  design_wip:      { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' },
+  internal_review: { bg: '#fffbeb', color: '#b45309', border: '#fde68a' },
+  sent_to_client:  { bg: '#ecfeff', color: '#0e7490', border: '#a5f3fc' },
+  approved:        { bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0' },
+  rejected:        { bg: '#fef2f2', color: '#dc2626', border: '#fecaca' },
+  live:            { bg: '#ecfdf5', color: '#047857', border: '#6ee7b7' },
+};
+
+const PRIORITY_OPTIONS = ['high', 'medium', 'low'];
+const PRIORITY_LABELS  = { high: 'High', medium: 'Medium', low: 'Low' };
 const TABS = [
-  { key: 'details', label: 'Details' },
+  { key: 'details',  label: 'Details'  },
   { key: 'comments', label: 'Comments' },
   { key: 'activity', label: 'Activity' },
 ];
 
+// ── Live date dialog ───────────────────────────────────────────────────────
+function LiveDateDialog({ onConfirm, onCancel, loading }) {
+  const [liveDate, setLiveDate] = useState('');
+  return (
+    <Portal>
+      <div style={backdropStyle} onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
+        <div style={{ ...modalBoxStyle, maxWidth: '380px' }} onClick={(e) => e.stopPropagation()}>
+          <div style={modalHeaderStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: 32, height: 32, borderRadius: 10, background: '#f0fdf4', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Calendar size={16} color="#15803d" />
+              </div>
+              <div>
+                <p style={{ fontSize: 14, fontWeight: 600, color: '#111827', margin: 0 }}>Set Live Date</p>
+                <p style={{ fontSize: 11, color: '#9ca3af', margin: 0 }}>When will this go live?</p>
+              </div>
+            </div>
+            <button onClick={onCancel} style={iconBtnStyle}><X size={16} /></button>
+          </div>
+          <div style={{ padding: '20px 24px' }}>
+            <label style={labelStyle}>Live Date <span style={{ color: '#9ca3af', fontWeight: 400 }}>(leave blank for today)</span></label>
+            <input type="date" value={liveDate} onChange={(e) => setLiveDate(e.target.value)} style={inputStyle} />
+          </div>
+          <div style={modalFooterStyle}>
+            <button onClick={onCancel} style={cancelBtnStyle}>Cancel</button>
+            <button
+              onClick={() => onConfirm(liveDate || null)}
+              disabled={loading}
+              style={{ ...submitBtnStyle, background: '#059669' }}
+            >
+              {loading ? 'Going live...' : 'Mark as Live'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Portal>
+  );
+}
+
+// ── Route from rejected dialog ─────────────────────────────────────────────
+function RouteFromRejectedDialog({ task, onConfirm, onClose, loading }) {
+  const options = [];
+  if (task.copyRequired  !== false) options.push({ value: 'copy_wip',  label: 'Copy WIP' });
+  if (task.videoRequired)           options.push({ value: 'video_wip', label: 'Video WIP' });
+  if (task.designRequired !== false) options.push({ value: 'design_wip', label: 'Design WIP' });
+  if (options.length === 0) options.push({ value: 'copy_wip', label: 'Copy WIP' });
+
+  const [routeTo, setRouteTo] = useState(options[0].value);
+
+  return (
+    <Portal>
+      <div style={{ ...backdropStyle, zIndex: 100001 }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+        <div style={{ ...modalBoxStyle, maxWidth: '380px' }} onClick={(e) => e.stopPropagation()}>
+          <div style={modalHeaderStyle}>
+            <p style={{ fontSize: 14, fontWeight: 600, color: '#111827', margin: 0 }}>Route for Revision</p>
+            <button onClick={onClose} style={iconBtnStyle}><X size={16} /></button>
+          </div>
+          <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <label style={labelStyle}>Route back to</label>
+            {options.map((opt) => (
+              <label
+                key={opt.value}
+                onClick={() => setRouteTo(opt.value)}
+                style={{
+                  display:      'flex',
+                  alignItems:   'center',
+                  gap:          '12px',
+                  padding:      '12px',
+                  borderRadius: '10px',
+                  border:       `1px solid ${routeTo === opt.value ? '#c4b5fd' : '#e5e7eb'}`,
+                  background:   routeTo === opt.value ? '#faf5ff' : '#ffffff',
+                  cursor:       'pointer',
+                  transition:   'all 0.15s ease',
+                }}
+              >
+                <div style={{
+                  width:        16, height: 16,
+                  borderRadius: '50%',
+                  border:       `2px solid ${routeTo === opt.value ? '#7c3aed' : '#d1d5db'}`,
+                  background:   routeTo === opt.value ? '#7c3aed' : 'transparent',
+                  display:      'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink:   0,
+                }}>
+                  {routeTo === opt.value && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />}
+                </div>
+                <span style={{ fontSize: 13, fontWeight: 500, color: routeTo === opt.value ? '#6d28d9' : '#374151' }}>
+                  {opt.label}
+                </span>
+              </label>
+            ))}
+          </div>
+          <div style={modalFooterStyle}>
+            <button onClick={onClose} style={cancelBtnStyle}>Cancel</button>
+            <button onClick={() => onConfirm(routeTo)} disabled={loading} style={submitBtnStyle}>
+              {loading ? 'Routing...' : 'Route for Revision'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Portal>
+  );
+}
+
+// ── Main modal ─────────────────────────────────────────────────────────────
 export default function TaskDetailModal({
   task: initialTask,
   brandMembers = [],
@@ -31,45 +174,45 @@ export default function TaskDetailModal({
   onUpdated,
   onDeleted,
 }) {
-  const [task, setTask] = useState(initialTask);
-  const [activeTab, setActiveTab] = useState('details');
-  const [editing, setEditing] = useState(false);
-  const [editForm, setEditForm] = useState({
-    title: initialTask.title,
-    description: initialTask.description || '',
-    priority: initialTask.priority,
-    internalDeadline: initialTask.internalDeadline
-      ? format(new Date(initialTask.internalDeadline), 'yyyy-MM-dd')
-      : '',
-    externalDeadline: initialTask.externalDeadline
-      ? format(new Date(initialTask.externalDeadline), 'yyyy-MM-dd')
-      : '',
-    assignees: initialTask.assignees?.map((a) => a._id || a) || [],
-    deliverableId: initialTask.deliverableId?._id || initialTask.deliverableId || '',
+  const [task, setTask]               = useState(initialTask);
+  const [activeTab, setActiveTab]     = useState('details');
+  const [editing, setEditing]         = useState(false);
+  const [editForm, setEditForm]       = useState({
+    title:            initialTask.title,
+    description:      initialTask.description || '',
+    priority:         initialTask.priority,
+    internalDeadline: initialTask.internalDeadline ? format(new Date(initialTask.internalDeadline), 'yyyy-MM-dd') : '',
+    externalDeadline: initialTask.externalDeadline ? format(new Date(initialTask.externalDeadline), 'yyyy-MM-dd') : '',
+    assignees:        initialTask.assignees?.map((a) => a._id || a) || [],
+    deliverableId:    initialTask.deliverableId?._id || initialTask.deliverableId || '',
   });
-  const [saving, setSaving] = useState(false);
-  const [transitioning, setTransitioning] = useState(false);
+  const [saving, setSaving]                     = useState(false);
+  const [transitioning, setTransitioning]       = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
-  const [showRouteDialog, setShowRouteDialog] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState(false);
-  const [error, setError] = useState('');
+  const [showLiveDateDialog, setShowLiveDateDialog] = useState(false);
+  const [showRouteDialog, setShowRouteDialog]   = useState(false);
+  const [deleteConfirm, setDeleteConfirm]       = useState(false);
+  const [selectedStatus, setSelectedStatus]     = useState('');
+  const [error, setError]                       = useState('');
 
-  const canManage = ['admin', 'account_manager'].includes(currentUserRole);
-  const isLive = task.status === 'live';
-  const validNext = VALID_TRANSITIONS[task.status] || [];
+  const canManage  = ['admin', 'account_manager'].includes(currentUserRole);
+  const isLive     = task.status === 'live';
+  const isRejected = task.status === 'rejected';
 
-  function toggleEditAssignee(id) {
-    setEditForm((prev) => ({
-      ...prev,
-      assignees: prev.assignees.includes(id)
-        ? prev.assignees.filter((a) => a !== id)
-        : [...prev.assignees, id],
+  const forwardOptions = VALID_TRANSITIONS[task.status] || [];
+  const backwardTarget = BACKWARD_TRANSITIONS[task.status] || null;
+  const dropdownOptions = forwardOptions.filter((s) => s !== 'rejected');
+  const statusStyle     = STATUS_COLORS[task.status] || { bg: '#f9fafb', color: '#6b7280', border: '#e5e7eb' };
+
+  function toggleAssignee(id) {
+    setEditForm((p) => ({
+      ...p,
+      assignees: p.assignees.includes(id) ? p.assignees.filter((a) => a !== id) : [...p.assignees, id],
     }));
   }
 
   async function saveEdits() {
-    setSaving(true);
-    setError('');
+    setSaving(true); setError('');
     try {
       const res = await fetch(`/api/tasks/${task._id}`, {
         method: 'PATCH',
@@ -78,451 +221,559 @@ export default function TaskDetailModal({
           ...editForm,
           internalDeadline: editForm.internalDeadline || null,
           externalDeadline: editForm.externalDeadline || null,
-          deliverableId: editForm.deliverableId || null,
+          deliverableId:    editForm.deliverableId    || null,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to save');
-      setTask(data.task);
-      setEditing(false);
-      onUpdated(data.task);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setSaving(false);
-    }
+      setTask(data.task); setEditing(false); onUpdated(data.task);
+    } catch (err) { setError(err.message); }
+    finally { setSaving(false); }
   }
 
-  async function handleTransition(newStatus) {
-    if (newStatus === 'rejected') {
-      setShowRejectDialog(true);
-      return;
-    }
-    setTransitioning(true);
-    setError('');
+  async function moveToStatus(newStatus, extra = {}) {
+    setTransitioning(true); setError('');
     try {
       const res = await fetch(`/api/tasks/${task._id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ status: newStatus, ...extra }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to move status');
-      setTask(data.task);
-      onUpdated(data.task);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setTransitioning(false);
+      setTask(data.task); onUpdated(data.task); setSelectedStatus('');
+    } catch (err) { setError(err.message); }
+    finally { setTransitioning(false); }
+  }
+
+  function handleForward() {
+    if (!selectedStatus && dropdownOptions.length === 1) {
+      const next = dropdownOptions[0];
+      if (next === 'live') { setShowLiveDateDialog(true); return; }
+      moveToStatus(next); return;
     }
+    if (!selectedStatus) { setError('Select a status to move to'); return; }
+    if (selectedStatus === 'live') { setShowLiveDateDialog(true); return; }
+    moveToStatus(selectedStatus);
   }
 
   async function handleDelete() {
     try {
       const res = await fetch(`/api/tasks/${task._id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete');
-      onDeleted(task._id);
-      onClose();
-    } catch (err) {
-      setError(err.message);
-    }
+      onDeleted(task._id); onClose();
+    } catch (err) { setError(err.message); }
   }
-
-  const statusBg = {
-    copy_wip: 'bg-purple-100 text-purple-700',
-    design_wip: 'bg-blue-100 text-blue-700',
-    internal_review: 'bg-amber-100 text-amber-700',
-    sent_to_client: 'bg-cyan-100 text-cyan-700',
-    approved: 'bg-green-100 text-green-700',
-    rejected: 'bg-red-100 text-red-700',
-    live: 'bg-emerald-100 text-emerald-700',
-  };
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-        <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl flex flex-col" style={{ maxHeight: '90vh' }}>
+      <Portal>
+        <div style={backdropStyle} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+          <div style={{ ...modalBoxStyle, maxWidth: '640px', maxHeight: '88vh' }} onClick={(e) => e.stopPropagation()}>
 
-          {/* ── HEADER ─────────────────────────────────────────────────── */}
-          <div className="flex items-start justify-between p-6 border-b border-gray-100 shrink-0">
-            <div className="flex-1 min-w-0 pr-4">
-              {editing ? (
-                <input
-                  value={editForm.title}
-                  onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                  className="w-full text-base font-semibold border-b border-indigo-300 focus:outline-none pb-1"
-                />
-              ) : (
-                <h2 className="text-base font-semibold text-gray-900 leading-snug">{task.title}</h2>
-              )}
-              <div className="flex items-center gap-2 mt-2 flex-wrap">
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusBg[task.status]}`}>
-                  {STATUS_LABELS[task.status]}
-                </span>
-                <PriorityBadge priority={task.priority} size="xs" />
-                {task.revisionCount > 0 && (
-                  <span className="inline-flex items-center gap-1 text-xs text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full font-medium">
-                    <RotateCcw className="w-3 h-3" />
-                    {task.revisionCount} revision{task.revisionCount !== 1 ? 's' : ''}
+            {/* Header */}
+            <div style={{ ...modalHeaderStyle, alignItems: 'flex-start' }}>
+              <div style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
+                {editing ? (
+                  <input
+                    value={editForm.title}
+                    onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                    style={{ ...inputStyle, fontSize: 15, fontWeight: 600 }}
+                  />
+                ) : (
+                  <p style={{ fontSize: 15, fontWeight: 600, color: '#111827', margin: '0 0 8px 0', lineHeight: 1.4 }}>
+                    {task.title}
+                  </p>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center',
+                    padding: '2px 10px', borderRadius: 99, fontSize: 11, fontWeight: 600,
+                    background: statusStyle.bg, color: statusStyle.color, border: `1px solid ${statusStyle.border}`,
+                  }}>
+                    {STATUS_LABELS[task.status]}
                   </span>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {canManage && (
-                <button
-                  onClick={() => setEditing(!editing)}
-                  className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                  title={editing ? 'Cancel edit' : 'Edit task'}
-                >
-                  <Edit2 className="w-4 h-4" />
-                </button>
-              )}
-              {canManage && (
-                <button
-                  onClick={() => setDeleteConfirm(true)}
-                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  title="Delete task"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              )}
-              <button
-                onClick={onClose}
-                className="p-2 text-gray-400 hover:text-gray-600 rounded-lg transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* ── TAB BAR ────────────────────────────────────────────────── */}
-          <div className="flex border-b border-gray-100 px-6 shrink-0">
-            {TABS.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px ${activeTab === tab.key
-                    ? 'border-indigo-500 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {/* ── TAB CONTENT ────────────────────────────────────────────── */}
-          <div className="flex-1 overflow-y-auto">
-
-            {/* DETAILS TAB */}
-            {activeTab === 'details' && (
-              <div className="p-6 space-y-6">
-                {/* Description */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                    Description
-                  </label>
-                  {editing ? (
-                    <textarea
-                      value={editForm.description}
-                      onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                      rows={3}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-                    />
-                  ) : (
-                    <p className="text-sm text-gray-700 leading-relaxed">
-                      {task.description || (
-                        <span className="text-gray-400 italic">No description</span>
-                      )}
-                    </p>
+                  {task.revisionCount > 0 && (
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 500,
+                      background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a',
+                    }}>
+                      <RotateCcw size={10} />
+                      Rev {task.revisionCount}
+                    </span>
                   )}
                 </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                {canManage && !isLive && (
+                  <button onClick={() => setEditing(!editing)} style={iconBtnStyle} title="Edit">
+                    <Edit2 size={15} />
+                  </button>
+                )}
+                {canManage && (
+                  <button
+                    onClick={() => setDeleteConfirm(true)}
+                    style={{ ...iconBtnStyle }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = '#fef2f2'; e.currentTarget.style.color = '#dc2626'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#9ca3af'; }}
+                    title="Delete"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                )}
+                <button onClick={onClose} style={iconBtnStyle}><X size={15} /></button>
+              </div>
+            </div>
 
-                {/* Meta grid */}
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Priority */}
+            {/* Tabs */}
+            <div style={{ display: 'flex', borderBottom: '1px solid #f3f4f6', padding: '0 24px', flexShrink: 0 }}>
+              {TABS.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  style={{
+                    padding:        '10px 16px',
+                    fontSize:       12,
+                    fontWeight:     600,
+                    border:         'none',
+                    borderBottom:   `2px solid ${activeTab === tab.key ? '#4f46e5' : 'transparent'}`,
+                    background:     'transparent',
+                    color:          activeTab === tab.key ? '#4f46e5' : '#9ca3af',
+                    cursor:         'pointer',
+                    fontFamily:     'inherit',
+                    marginBottom:   '-1px',
+                    transition:     'color 0.15s ease',
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Body */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+
+              {/* DETAILS TAB */}
+              {activeTab === 'details' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+                  {/* Description */}
                   <div>
-                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                      Priority
-                    </label>
+                    <label style={labelStyle}>Description</label>
                     {editing ? (
-                      <select
-                        value={editForm.priority}
-                        onChange={(e) => setEditForm({ ...editForm, priority: e.target.value })}
-                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-                      >
-                        {PRIORITY_OPTIONS.map((p) => (
-                          <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>
-                        ))}
-                      </select>
+                      <textarea
+                        value={editForm.description}
+                        onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                        rows={3}
+                        style={{ ...inputStyle, resize: 'none', fontFamily: 'inherit' }}
+                      />
                     ) : (
-                      <PriorityBadge priority={task.priority} />
+                      <p style={{ fontSize: 13, color: task.description ? '#374151' : '#9ca3af', fontStyle: task.description ? 'normal' : 'italic', margin: 0, lineHeight: 1.6 }}>
+                        {task.description || 'No description'}
+                      </p>
                     )}
                   </div>
 
-                  {/* Deliverable */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                      Deliverable
-                    </label>
-                    {editing ? (
-                      <select
-                        value={editForm.deliverableId}
-                        onChange={(e) => setEditForm({ ...editForm, deliverableId: e.target.value })}
-                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-                      >
-                        <option value="">None</option>
-                        {deliverables.map((d) => (
-                          <option key={d._id} value={d._id}>{d.name}</option>
-                        ))}
-                      </select>
-                    ) : task.deliverableId ? (
-                      <div className="flex items-center gap-1.5 text-sm text-gray-700">
-                        <Link2 className="w-4 h-4 text-gray-400" />
-                        {task.deliverableId.name}
+                  {/* Meta grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    {/* Priority */}
+                    <div>
+                      <label style={labelStyle}>Priority</label>
+                      {editing ? (
+                        <select value={editForm.priority} onChange={(e) => setEditForm({ ...editForm, priority: e.target.value })} style={inputStyle}>
+                          {PRIORITY_OPTIONS.map((p) => <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>)}
+                        </select>
+                      ) : <PriorityBadge priority={task.priority} />}
+                    </div>
+
+                    {/* Deliverable */}
+                    <div>
+                      <label style={labelStyle}>Deliverable</label>
+                      {editing ? (
+                        <select value={editForm.deliverableId} onChange={(e) => setEditForm({ ...editForm, deliverableId: e.target.value })} style={inputStyle}>
+                          <option value="">None</option>
+                          {deliverables.map((d) => <option key={d._id} value={d._id}>{d.name}</option>)}
+                        </select>
+                      ) : task.deliverableId ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#374151' }}>
+                          <Link2 size={13} color="#9ca3af" />
+                          {task.deliverableId.name}
+                        </div>
+                      ) : <span style={{ fontSize: 13, color: '#9ca3af', fontStyle: 'italic' }}>None</span>}
+                    </div>
+
+                    {/* Internal deadline */}
+                    <div>
+                      <label style={labelStyle}>Internal Deadline</label>
+                      {editing ? (
+                        <input type="date" value={editForm.internalDeadline} onChange={(e) => setEditForm({ ...editForm, internalDeadline: e.target.value })} style={inputStyle} />
+                      ) : <DeadlineBadge date={task.internalDeadline} label="Int" closed={isLive} />}
+                    </div>
+
+                    {/* External deadline */}
+                    <div>
+                      <label style={labelStyle}>External Deadline</label>
+                      {editing ? (
+                        <input type="date" value={editForm.externalDeadline} onChange={(e) => setEditForm({ ...editForm, externalDeadline: e.target.value })} style={inputStyle} />
+                      ) : <DeadlineBadge date={task.externalDeadline} label="Ext" closed={isLive} />}
+                    </div>
+
+                    {/* Live date */}
+                    {task.liveDate && (
+                      <div>
+                        <label style={labelStyle}>Live Date</label>
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 5,
+                          padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 500,
+                          background: '#ecfdf5', color: '#047857', border: '1px solid #6ee7b7',
+                        }}>
+                          <Calendar size={10} />
+                          {format(new Date(task.liveDate), 'dd MMM yyyy')}
+                        </span>
                       </div>
-                    ) : (
-                      <span className="text-sm text-gray-400 italic">None</span>
                     )}
                   </div>
 
-                  {/* Internal deadline */}
+                  {/* Assignees */}
                   <div>
-                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                      Internal Deadline
-                    </label>
+                    <label style={labelStyle}>Assignees</label>
                     {editing ? (
-                      <input
-                        type="date"
-                        value={editForm.internalDeadline}
-                        onChange={(e) => setEditForm({ ...editForm, internalDeadline: e.target.value })}
-                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-                      />
-                    ) : (
-                      <DeadlineBadge date={task.internalDeadline} closed={isLive} />
-                    )}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {brandMembers.map((m) => {
+                          const id   = m.userId?._id || m.userId;
+                          const name = m.userId?.name || 'Unknown';
+                          const initials = name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
+                          const sel  = editForm.assignees.includes(id);
+                          return (
+                            <button key={id} type="button" onClick={() => toggleAssignee(id)} style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 8,
+                              padding: '6px 12px', borderRadius: 8,
+                              border: `1px solid ${sel ? '#a5b4fc' : '#e5e7eb'}`,
+                              background: sel ? '#eef2ff' : '#fff',
+                              color: sel ? '#4338ca' : '#374151',
+                              fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+                            }}>
+                              <span style={{ width: 22, height: 22, borderRadius: '50%', background: sel ? '#4f46e5' : '#f3f4f6', color: sel ? '#fff' : '#6b7280', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                {initials}
+                              </span>
+                              {name}
+                              {sel && <Check size={12} />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : task.assignees?.length > 0 ? (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {task.assignees.map((user) => {
+                          const name = user.name || '';
+                          const initials = name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
+                          return (
+                            <div key={user._id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 8, background: '#f9fafb', border: '1px solid #e5e7eb' }}>
+                              <span style={{ width: 22, height: 22, borderRadius: '50%', background: '#e0e7ff', color: '#4f46e5', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{initials}</span>
+                              <span style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>{name}</span>
+                              <span style={{ fontSize: 11, color: '#9ca3af', textTransform: 'capitalize' }}>{user.role?.replace(/_/g, ' ')}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : <span style={{ fontSize: 13, color: '#9ca3af', fontStyle: 'italic' }}>No assignees</span>}
                   </div>
 
-                  {/* External deadline */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                      External Deadline
-                    </label>
-                    {editing ? (
-                      <input
-                        type="date"
-                        value={editForm.externalDeadline}
-                        onChange={(e) => setEditForm({ ...editForm, externalDeadline: e.target.value })}
-                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-                      />
-                    ) : (
-                      <DeadlineBadge date={task.externalDeadline} closed={isLive} />
-                    )}
-                  </div>
-                </div>
-
-                {/* Assignees */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                    Assignees
-                  </label>
-                  {editing ? (
-                    <div className="flex flex-wrap gap-2">
-                      {brandMembers.map((member) => {
-                        const id = member.userId?._id || member.userId;
-                        const name = member.userId?.name || 'Unknown';
-                        const initials = name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
-                        const selected = editForm.assignees.includes(id);
-                        return (
-                          <button
-                            key={id}
-                            type="button"
-                            onClick={() => toggleEditAssignee(id)}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm transition-all ${selected
-                                ? 'border-indigo-400 bg-indigo-50 text-indigo-700'
-                                : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                              }`}
-                          >
-                            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-semibold ${selected ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
-                              {initials}
-                            </span>
-                            {name}
-                          </button>
-                        );
-                      })}
+                  {/* Edit save/cancel */}
+                  {editing && (
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                      <button onClick={() => setEditing(false)} style={cancelBtnStyle}>Cancel</button>
+                      <button onClick={saveEdits} disabled={saving} style={submitBtnStyle}>
+                        {saving ? 'Saving...' : 'Save Changes'}
+                      </button>
                     </div>
-                  ) : task.assignees?.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {task.assignees.map((user) => {
-                        const name = user.name || '';
-                        const initials = name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
-                        return (
-                          <div
-                            key={user._id}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg"
-                          >
-                            <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-semibold flex items-center justify-center">
-                              {initials}
-                            </span>
-                            <span className="text-sm text-gray-700">{name}</span>
-                            <span className="text-xs text-gray-400">{user.role?.replace(/_/g, ' ')}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <span className="text-sm text-gray-400 italic">No assignees</span>
                   )}
-                </div>
 
-                {/* Edit save/cancel */}
-                {editing && (
-                  <div className="flex justify-end gap-3">
-                    <button
-                      onClick={() => setEditing(false)}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={saveEdits}
-                      disabled={saving}
-                      className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors disabled:opacity-60"
-                    >
-                      {saving ? 'Saving...' : 'Save Changes'}
-                    </button>
-                  </div>
-                )}
+                  {error && <p style={{ fontSize: 13, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 14px', margin: 0 }}>{error}</p>}
 
-                {error && <p className="text-sm text-red-600">{error}</p>}
+                  {/* ── Move Task ── */}
+                  {!editing && !isLive && (
+                    <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: 20 }}>
+                      <label style={{ ...labelStyle, marginBottom: 12 }}>Move Task</label>
 
-                {/* Status Transitions */}
-                {!editing && !isLive && validNext.length > 0 && (
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                      Move Task
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {validNext.map((next) => {
-                        const isReject = next === 'rejected';
-                        const needsAM = isReject || task.status === 'rejected';
-                        if (needsAM && !canManage) return null;
-                        return (
-                          <button
-                            key={next}
-                            onClick={() => handleTransition(next)}
-                            disabled={transitioning}
-                            className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border transition-all disabled:opacity-60 ${isReject
-                                ? 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100'
-                                : 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
-                              }`}
-                          >
-                            <ChevronRight className="w-4 h-4" />
-                            {STATUS_LABELS[next]}
-                          </button>
-                        );
-                      })}
+                      {isRejected ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 10, background: '#fef2f2', border: '1px solid #fecaca' }}>
+                            <RotateCcw size={15} color="#dc2626" style={{ flexShrink: 0 }} />
+                            <p style={{ fontSize: 12, color: '#dc2626', margin: 0 }}>
+                              This task was rejected. Route it back for revision to continue.
+                            </p>
+                          </div>
+                          {canManage && (
+                            <button onClick={() => setShowRouteDialog(true)} disabled={transitioning} style={{ ...submitBtnStyle, justifyContent: 'center', opacity: transitioning ? 0.5 : 1 }}>
+                              <RotateCcw size={13} />
+                              Route for Revision
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                            {/* Back button */}
+                            {backwardTarget && canManage && (
+                              <button
+                                onClick={() => moveToStatus(backwardTarget)}
+                                disabled={transitioning}
+                                title={`Back to ${STATUS_LABELS[backwardTarget]}`}
+                                style={{
+                                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                                  padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 500,
+                                  border: '1px solid #e5e7eb', background: '#f9fafb', color: '#6b7280',
+                                  cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s ease',
+                                  opacity: transitioning ? 0.5 : 1,
+                                }}
+                              >
+                                <ChevronLeft size={13} />
+                                {STATUS_LABELS[backwardTarget]}
+                              </button>
+                            )}
 
-                      {/* Route out of rejected */}
-                      {task.status === 'rejected' && canManage && (
-                        <button
-                          onClick={() => setShowRouteDialog(true)}
-                          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-all"
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                          Route for Revision
-                        </button>
+                            {/* Dropdown when multiple forward options */}
+                            {dropdownOptions.length > 1 && (
+                              <select
+                                value={selectedStatus}
+                                onChange={(e) => setSelectedStatus(e.target.value)}
+                                style={{ ...inputStyle, flex: 1, minWidth: 160 }}
+                              >
+                                <option value="">Select next stage...</option>
+                                {dropdownOptions.map((s) => (
+                                  <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                                ))}
+                              </select>
+                            )}
+
+                            {/* Forward button */}
+                            {dropdownOptions.length > 0 && (
+                              <button
+                                onClick={handleForward}
+                                disabled={transitioning || (dropdownOptions.length > 1 && !selectedStatus)}
+                                style={{
+                                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                                  padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 500,
+                                  border: '1px solid #c4b5fd', background: '#faf5ff', color: '#6d28d9',
+                                  cursor: (transitioning || (dropdownOptions.length > 1 && !selectedStatus)) ? 'not-allowed' : 'pointer',
+                                  fontFamily: 'inherit', transition: 'all 0.15s ease',
+                                  opacity: (transitioning || (dropdownOptions.length > 1 && !selectedStatus)) ? 0.5 : 1,
+                                }}
+                              >
+                                {dropdownOptions.length === 1
+                                  ? STATUS_LABELS[dropdownOptions[0]]
+                                  : (selectedStatus ? STATUS_LABELS[selectedStatus] : 'Move Forward')
+                                }
+                                <ChevronRight size={13} />
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Reject button */}
+                          {forwardOptions.includes('rejected') && canManage && (
+                            <button
+                              onClick={() => setShowRejectDialog(true)}
+                              disabled={transitioning}
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 6,
+                                padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 500,
+                                border: '1px solid #fecaca', background: '#fef2f2', color: '#dc2626',
+                                cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s ease',
+                                opacity: transitioning ? 0.5 : 1, alignSelf: 'flex-start',
+                              }}
+                            >
+                              <X size={13} />
+                              Reject Task
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {isLive && (
-                  <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3">
-                    <Check className="w-4 h-4" />
-                    This task is live and closed.
-                    {task.closedAt && (
-                      <span className="text-emerald-600 ml-1">
-                        Completed {format(new Date(task.closedAt), 'dd MMM yyyy')}
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
+                  {isLive && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', borderRadius: 10, background: '#ecfdf5', border: '1px solid #6ee7b7', fontSize: 13, color: '#047857' }}>
+                      <Check size={15} />
+                      Task is live and closed.
+                      {task.liveDate && <span style={{ fontSize: 11, opacity: 0.7 }}>· Live {format(new Date(task.liveDate), 'dd MMM yyyy')}</span>}
+                    </div>
+                  )}
+                </div>
+              )}
 
-            {/* COMMENTS TAB */}
-            {activeTab === 'comments' && (
-              <div className="p-6 flex flex-col" style={{ minHeight: '400px' }}>
-                <CommentThread
-                  taskId={task._id}
-                  currentUserId={currentUserId}
-                  currentUserRole={currentUserRole}
-                  brandMembers={brandMembers}
-                />
-              </div>
-            )}
+              {/* COMMENTS TAB */}
+              {activeTab === 'comments' && (
+                <div style={{ minHeight: 360 }}>
+                  <CommentThread
+                    taskId={task._id}
+                    currentUserId={currentUserId}
+                    currentUserRole={currentUserRole}
+                    brandMembers={brandMembers}
+                  />
+                </div>
+              )}
 
-            {/* ACTIVITY TAB */}
-            {activeTab === 'activity' && (
-              <div className="p-6">
+              {/* ACTIVITY TAB */}
+              {activeTab === 'activity' && (
                 <ActivityFeed taskId={task._id} />
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {deleteConfirm && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full">
-            <h3 className="text-base font-semibold text-gray-900 mb-2">Delete Task?</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              This will permanently delete{' '}
-              <span className="font-medium">"{task.title}"</span>. This action cannot be undone.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setDeleteConfirm(false)}
-                className="px-4 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDelete}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
-              >
-                Delete
-              </button>
+              )}
             </div>
           </div>
         </div>
+      </Portal>
+
+      {/* Delete confirm */}
+      {deleteConfirm && (
+        <Portal>
+          <div style={{ ...backdropStyle, zIndex: 100001 }}>
+            <div style={{ ...modalBoxStyle, maxWidth: 360 }}>
+              <div style={{ padding: '24px' }}>
+                <p style={{ fontSize: 15, fontWeight: 600, color: '#111827', margin: '0 0 8px 0' }}>Delete Task?</p>
+                <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 20px 0', lineHeight: 1.5 }}>
+                  Permanently delete <strong>"{task.title}"</strong>? This cannot be undone.
+                </p>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                  <button onClick={() => setDeleteConfirm(false)} style={cancelBtnStyle}>Cancel</button>
+                  <button onClick={handleDelete} style={{ ...submitBtnStyle, background: '#dc2626' }}>Delete</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Portal>
       )}
 
       {showRejectDialog && (
         <RejectionDialog
           task={task}
           onClose={() => setShowRejectDialog(false)}
-          onRejected={(updated) => {
-            setTask(updated);
-            onUpdated(updated);
-            setShowRejectDialog(false);
-          }}
+          onRejected={(updated) => { setTask(updated); onUpdated(updated); setShowRejectDialog(false); }}
+        />
+      )}
+
+      {showLiveDateDialog && (
+        <LiveDateDialog
+          loading={transitioning}
+          onConfirm={(liveDate) => { setShowLiveDateDialog(false); moveToStatus('live', { liveDate }); }}
+          onCancel={() => setShowLiveDateDialog(false)}
         />
       )}
 
       {showRouteDialog && (
-        <RouteRejectionDialog
+        <RouteFromRejectedDialog
           task={task}
+          loading={transitioning}
           onClose={() => setShowRouteDialog(false)}
-          onRouted={(updated) => {
-            setTask(updated);
-            onUpdated(updated);
-            setShowRouteDialog(false);
-          }}
+          onConfirm={(routeTo) => { setShowRouteDialog(false); moveToStatus(routeTo); }}
         />
       )}
     </>
   );
 }
+
+// ── Shared style objects ───────────────────────────────────────────────────
+const backdropStyle = {
+  position:        'fixed',
+  inset:           0,
+  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  backdropFilter:  'blur(4px)',
+  zIndex:          100000,
+  display:         'flex',
+  alignItems:      'center',
+  justifyContent:  'center',
+  padding:         '16px',
+};
+
+const modalBoxStyle = {
+  background:    '#ffffff',
+  borderRadius:  '16px',
+  border:        '1px solid #e5e7eb',
+  boxShadow:     '0 25px 80px rgba(0, 0, 0, 0.18)',
+  width:         '100%',
+  display:       'flex',
+  flexDirection: 'column',
+  overflow:      'hidden',
+};
+
+const modalHeaderStyle = {
+  display:        'flex',
+  alignItems:     'center',
+  justifyContent: 'space-between',
+  padding:        '20px 24px',
+  borderBottom:   '1px solid #f3f4f6',
+  flexShrink:     0,
+};
+
+const modalFooterStyle = {
+  display:        'flex',
+  justifyContent: 'flex-end',
+  gap:            '10px',
+  padding:        '16px 24px',
+  borderTop:      '1px solid #f3f4f6',
+  flexShrink:     0,
+};
+
+const iconBtnStyle = {
+  padding:        '6px',
+  borderRadius:   '8px',
+  border:         'none',
+  background:     'transparent',
+  cursor:         'pointer',
+  color:          '#9ca3af',
+  display:        'flex',
+  alignItems:     'center',
+  justifyContent: 'center',
+  transition:     'all 0.15s ease',
+};
+
+const labelStyle = {
+  display:      'block',
+  fontSize:     '11px',
+  fontWeight:   600,
+  color:        '#6b7280',
+  marginBottom: '6px',
+  textTransform:'uppercase',
+  letterSpacing:'0.05em',
+  fontFamily:   'inherit',
+};
+
+const inputStyle = {
+  width:        '100%',
+  background:   '#ffffff',
+  border:       '1px solid #e5e7eb',
+  borderRadius: '8px',
+  color:        '#111827',
+  fontSize:     '13px',
+  padding:      '8px 12px',
+  fontFamily:   'inherit',
+  boxSizing:    'border-box',
+  outline:      'none',
+};
+
+const cancelBtnStyle = {
+  padding:      '8px 16px',
+  fontSize:     '13px',
+  fontWeight:   500,
+  color:        '#374151',
+  background:   '#f3f4f6',
+  border:       'none',
+  borderRadius: '8px',
+  cursor:       'pointer',
+  fontFamily:   'inherit',
+};
+
+const submitBtnStyle = {
+  display:      'inline-flex',
+  alignItems:   'center',
+  gap:          '6px',
+  padding:      '8px 18px',
+  fontSize:     '13px',
+  fontWeight:   500,
+  color:        '#ffffff',
+  background:   '#4f46e5',
+  border:       'none',
+  borderRadius: '8px',
+  cursor:       'pointer',
+  fontFamily:   'inherit',
+};

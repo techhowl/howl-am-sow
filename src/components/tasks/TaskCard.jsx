@@ -1,7 +1,7 @@
 // src/components/tasks/TaskCard.jsx
 'use client';
 
-import { RotateCcw, Link2 } from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 import PriorityBadge from '@/components/shared/PriorityBadge';
 import DeadlineBadge from '@/components/shared/DeadlineBadge';
 
@@ -29,14 +29,6 @@ export default function TaskCard({ task, onClick }) {
         {task.title}
       </p>
 
-      {/* Linked deliverable */}
-      {task.deliverableId && (
-        <div className="flex items-center gap-1 text-xs text-gray-400 mb-3">
-          <Link2 className="w-3 h-3" />
-          <span className="truncate">{task.deliverableId.name}</span>
-        </div>
-      )}
-
       {/* Deadlines */}
       {(task.internalDeadline || task.externalDeadline) && (
         <div className="flex flex-wrap gap-1.5 mb-3">
@@ -53,7 +45,7 @@ export default function TaskCard({ task, onClick }) {
       {task.assignees?.length > 0 && (
         <div className="flex items-center gap-1 flex-wrap">
           {task.assignees.slice(0, 4).map((user) => {
-            const name = user.name || '';
+            const name     = user.name || '';
             const initials = name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
             return (
               <span
@@ -74,4 +66,4 @@ export default function TaskCard({ task, onClick }) {
       )}
     </div>
   );
-}
+} 

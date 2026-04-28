@@ -12,19 +12,19 @@ export default function BrandDetailPage() {
   const { data: session } = useSession()
   const router = useRouter()
 
-  const [brand, setBrand] = useState(null)
+  const [brand, setBrand]   = useState(null)
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAssign, setShowAssign] = useState(false)
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeTab, setActiveTab]   = useState('overview')
   const [showDelete, setShowDelete] = useState(false)
-  const [deleting, setDeleting] = useState(false)
+  const [deleting, setDeleting]     = useState(false)
 
   useEffect(() => { fetchBrand() }, [brandId])
 
   async function fetchBrand() {
     try {
-      const res = await fetch(`/api/brands/${brandId}`)
+      const res  = await fetch(`/api/brands/${brandId}`)
       const data = await res.json()
       if (res.ok) {
         setBrand(data.brand)
@@ -47,34 +47,27 @@ export default function BrandDetailPage() {
     }
   }
 
-  if (loading) {
-    return <div className="p-10 text-sm text-gray-400">Loading...</div>
-  }
-
+  if (loading) return <div className="p-10 text-sm text-gray-400">Loading...</div>
   if (!brand) return null
 
   const canManage = session && canAssignMembers(session.user.role)
 
   const tabs = [
     { id: 'overview', label: 'Overview' },
-    { id: 'members', label: `Members (${members.length})` },
+    { id: 'members',  label: `Members (${members.length})` },
   ]
 
+  // Deliverables removed — only Tasks and Analytics remain
   const navItems = [
     {
-      label: 'Deliverables',
-      desc: 'Videos, statics, carousels and more',
-      href: `/brands/${brandId}/deliverables`,
-    },
-    {
       label: 'Tasks',
-      desc: 'Kanban board — track work through the workflow',
-      href: `/brands/${brandId}/tasks`,
+      desc:  'Kanban board — track work through the workflow',
+      href:  `/brands/${brandId}/tasks`,
     },
     {
       label: 'Analytics',
-      desc: 'Weekly and monthly performance breakdown',
-      href: `/brands/${brandId}/analytics`,
+      desc:  'Weekly and monthly performance breakdown',
+      href:  `/brands/${brandId}/analytics`,
     },
   ]
 
@@ -93,7 +86,7 @@ export default function BrandDetailPage() {
         {/* Brand header card */}
         <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
           <div className="flex items-center justify-between gap-4">
-            <div className='flex gap-x-3 items-center'>
+            <div className="flex gap-x-3 items-center">
               <div
                 className="w-14 h-14 rounded-xl flex items-center justify-center text-white font-bold text-2xl shrink-0"
                 style={{ background: brand.color || '#4f46e5' }}
@@ -101,15 +94,11 @@ export default function BrandDetailPage() {
                 {brand.name.charAt(0).toUpperCase()}
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">
-                  {brand.name}
-                </h1>
+                <h1 className="text-xl font-semibold text-gray-900">{brand.name}</h1>
                 <p className="text-sm text-gray-400 mt-1">
                   Created by {brand.createdBy?.name || '—'} ·{' '}
                   {new Date(brand.createdAt).toLocaleDateString('en-IN', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
+                    day: 'numeric', month: 'short', year: 'numeric',
                   })}
                 </p>
               </div>
@@ -131,17 +120,18 @@ export default function BrandDetailPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all border-none cursor-pointer ${activeTab === tab.id
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-gray-500 bg-transparent hover:text-gray-700'
-                }`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all border-none cursor-pointer ${
+                activeTab === tab.id
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-gray-500 bg-transparent hover:text-gray-700'
+              }`}
             >
               {tab.label}
             </button>
           ))}
         </div>
 
-        {/* Tab: Overview */}
+        {/* Overview tab */}
         {activeTab === 'overview' && (
           <div className="flex flex-col gap-3">
             {navItems.map((item) => (
@@ -151,12 +141,8 @@ export default function BrandDetailPage() {
                 className="flex justify-between items-center p-5 bg-white border border-gray-200 rounded-xl cursor-pointer hover:border-indigo-300 hover:shadow-sm transition-all text-left w-full"
               >
                 <div>
-                  <div className="text-sm font-semibold text-gray-900">
-                    {item.label}
-                  </div>
-                  <div className="text-xs text-gray-400 mt-1">
-                    {item.desc}
-                  </div>
+                  <div className="text-sm font-semibold text-gray-900">{item.label}</div>
+                  <div className="text-xs text-gray-400 mt-1">{item.desc}</div>
                 </div>
                 <span className="text-gray-300 text-lg ml-4">→</span>
               </button>
@@ -164,11 +150,9 @@ export default function BrandDetailPage() {
           </div>
         )}
 
-        {/* Tab: Members */}
+        {/* Members tab */}
         {activeTab === 'members' && (
           <div className="flex flex-col gap-4">
-
-            {/* Header */}
             <div className="flex justify-between items-center">
               <p className="text-sm text-gray-500">
                 {members.length} member{members.length !== 1 ? 's' : ''} assigned to this brand
@@ -176,22 +160,20 @@ export default function BrandDetailPage() {
               {canManage && (
                 <button
                   onClick={() => setShowAssign(!showAssign)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-lg cursor-pointer border transition-all ${showAssign
-                    ? 'bg-gray-100 text-gray-700 border-gray-200'
-                    : 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700'
-                    }`}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-lg cursor-pointer border transition-all ${
+                    showAssign
+                      ? 'bg-gray-100 text-gray-700 border-gray-200'
+                      : 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700'
+                  }`}
                 >
                   {showAssign ? 'Done' : 'Manage members'}
                 </button>
               )}
             </div>
 
-            {/* Assign panel */}
             {showAssign && canManage && (
               <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                <p className="text-xs font-medium text-gray-600 mb-3">
-                  Add or remove members
-                </p>
+                <p className="text-xs font-medium text-gray-600 mb-3">Add or remove members</p>
                 <AssignMemberPanel
                   brandId={brandId}
                   members={members}
@@ -200,7 +182,6 @@ export default function BrandDetailPage() {
               </div>
             )}
 
-            {/* Members list */}
             <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
               {members.length === 0 ? (
                 <p className="p-8 text-center text-sm text-gray-400">
@@ -217,12 +198,8 @@ export default function BrandDetailPage() {
                         {m.userId?.name?.charAt(0)?.toUpperCase() || '?'}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-gray-900">
-                          {m.userId?.name}
-                        </div>
-                        <div className="text-xs text-gray-400 mt-0.5 truncate">
-                          {m.userId?.email}
-                        </div>
+                        <div className="text-sm font-medium text-gray-900">{m.userId?.name}</div>
+                        <div className="text-xs text-gray-400 mt-0.5 truncate">{m.userId?.email}</div>
                       </div>
                       <RoleBadge role={m.userId?.role} />
                     </div>
@@ -230,21 +207,18 @@ export default function BrandDetailPage() {
                 </div>
               )}
             </div>
-
           </div>
         )}
-
       </div>
-      {/* Delete confirm dialog */}
+
+      {/* Delete confirm */}
       {showDelete && (
         <div
           className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-6"
           onClick={(e) => e.target === e.currentTarget && setShowDelete(false)}
         >
           <div className="bg-white border border-gray-200 rounded-2xl p-6 w-full max-w-sm">
-            <h2 className="text-base font-semibold text-gray-900 mb-2">
-              Delete brand
-            </h2>
+            <h2 className="text-base font-semibold text-gray-900 mb-2">Delete brand</h2>
             <p className="text-sm text-gray-500 mb-6">
               Are you sure you want to delete{' '}
               <span className="font-medium text-gray-900">{brand.name}</span>?

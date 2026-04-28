@@ -3,33 +3,27 @@
 
 import { useState } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
+import Portal from '@/components/shared/Portal';
 
 export default function RejectionDialog({ task, onClose, onRejected }) {
-  const [reason, setReason] = useState('');
-  const [routeTo, setRouteTo] = useState(
-    task.copyRequired !== false ? 'copy_wip' : 'design_wip'
-  );
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const options = [];
+  if (task.copyRequired  !== false) options.push({ value: 'copy_wip',  label: 'Copy WIP' });
+  if (task.videoRequired)           options.push({ value: 'video_wip', label: 'Video WIP' });
+  if (task.designRequired !== false) options.push({ value: 'design_wip', label: 'Design WIP' });
+  if (options.length === 0) options.push({ value: 'copy_wip', label: 'Copy WIP' });
 
-  const routeOptions = [];
-  if (task.copyRequired !== false) routeOptions.push({ value: 'copy_wip', label: 'Copy WIP' });
-  if (task.designRequired !== false) routeOptions.push({ value: 'design_wip', label: 'Design WIP' });
-  if (routeOptions.length === 0) {
-    routeOptions.push({ value: 'copy_wip', label: 'Copy WIP' });
-    routeOptions.push({ value: 'design_wip', label: 'Design WIP' });
-  }
+  const [reason, setReason]   = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState('');
 
   async function handleReject() {
-    setLoading(true);
-    setError('');
+    setLoading(true); setError('');
     try {
       const res = await fetch(`/api/tasks/${task._id}/status`, {
-        method: 'PATCH',
+        method:  'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          status: 'rejected',          // ← was newStatus, now status
-          routeTo,                     // ← was missing entirely
+          status:          'rejected',
           rejectionReason: reason,
         }),
       });
@@ -45,92 +39,102 @@ export default function RejectionDialog({ task, onClose, onRejected }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-        <div className="flex items-center justify-between p-6 border-b border-gray-100">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
-              <AlertTriangle className="w-4 h-4 text-red-600" />
+    <Portal>
+      <div
+        style={{
+          position:        'fixed',
+          inset:           0,
+          backgroundColor: 'rgba(0, 0, 0, 0.55)',
+          backdropFilter:  'blur(4px)',
+          zIndex:          100001,
+          display:         'flex',
+          alignItems:      'center',
+          justifyContent:  'center',
+          padding:         '16px',
+        }}
+        onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      >
+        <div
+          style={{
+            background:    '#ffffff',
+            borderRadius:  '16px',
+            border:        '1px solid #e5e7eb',
+            boxShadow:     '0 25px 80px rgba(0, 0, 0, 0.18)',
+            width:         '100%',
+            maxWidth:      '400px',
+            overflow:      'hidden',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid #f3f4f6' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 10, background: '#fef2f2', border: '1px solid #fecaca', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <AlertTriangle size={16} color="#dc2626" />
+              </div>
+              <div>
+                <p style={{ fontSize: 14, fontWeight: 600, color: '#111827', margin: 0 }}>Reject Task</p>
+                <p style={{ fontSize: 11, color: '#9ca3af', margin: 0, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {task.title}
+                </p>
+              </div>
             </div>
-            <h2 className="text-base font-semibold text-gray-900">Reject Task</h2>
+            <button onClick={onClose} style={{ padding: 6, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: '#9ca3af', display: 'flex' }}>
+              <X size={16} />
+            </button>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
 
-        <div className="p-6 space-y-4">
-          <p className="text-sm text-gray-600">
-            You are rejecting <span className="font-medium text-gray-900">"{task.title}"</span>. This will increment the revision count.
-          </p>
-
-          {/* Route back selector */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Route back to *</label>
-            <div className="flex flex-col gap-2">
-              {routeOptions.map((opt) => (
-                <label
-                  key={opt.value}
-                  className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
-                    routeTo === opt.value
-                      ? 'border-red-300 bg-red-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                    routeTo === opt.value ? 'border-red-500 bg-red-500' : 'border-gray-300'
-                  }`}>
-                    {routeTo === opt.value && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                  </div>
-                  <input
-                    type="radio"
-                    className="hidden"
-                    value={opt.value}
-                    checked={routeTo === opt.value}
-                    onChange={() => setRouteTo(opt.value)}
-                  />
-                  <span className={`text-sm font-medium ${routeTo === opt.value ? 'text-red-700' : 'text-gray-700'}`}>
-                    {opt.label}
-                  </span>
-                </label>
-              ))}
+          {/* Body */}
+          <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ padding: '12px 14px', borderRadius: 10, background: '#fef2f2', border: '1px solid #fecaca', fontSize: 12, color: '#dc2626', lineHeight: 1.5 }}>
+              This will increment the revision count. The task will stay in the <strong>Rejected</strong> column until you route it back for revision.
             </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#6b7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Reason <span style={{ color: '#9ca3af', fontWeight: 400, textTransform: 'none' }}>(optional)</span>
+              </label>
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="What needs to be changed?"
+                rows={3}
+                style={{
+                  width: '100%', background: '#fff', border: '1px solid #e5e7eb',
+                  borderRadius: 8, color: '#111827', fontSize: 13, padding: '8px 12px',
+                  fontFamily: 'inherit', boxSizing: 'border-box', resize: 'none', outline: 'none',
+                }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = '#6366f1'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)'; }}
+                onBlur={(e)  => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
+              />
+            </div>
+
+            {error && (
+              <p style={{ fontSize: 12, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '8px 12px', margin: 0 }}>
+                {error}
+              </p>
+            )}
           </div>
 
-          {/* Reason */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Rejection Reason <span className="text-gray-400 font-normal">(optional)</span>
-            </label>
-            <textarea
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              rows={3}
-              placeholder="Describe what needs to be changed..."
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100"
-            />
-          </div>
-
-          {error && <p className="text-sm text-red-600">{error}</p>}
-
-          <div className="flex justify-end gap-3 pt-2">
+          {/* Footer */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '16px 24px', borderTop: '1px solid #f3f4f6' }}>
             <button
-              type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              disabled={loading}
+              style={{ padding: '8px 16px', fontSize: 13, fontWeight: 500, color: '#374151', background: '#f3f4f6', border: 'none', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}
             >
               Cancel
             </button>
             <button
               onClick={handleReject}
               disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-60"
+              style={{ padding: '8px 18px', fontSize: 13, fontWeight: 500, color: '#fff', background: loading ? '#fca5a5' : '#dc2626', border: 'none', borderRadius: 8, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: loading ? 0.7 : 1 }}
             >
               {loading ? 'Rejecting...' : 'Confirm Rejection'}
             </button>
           </div>
         </div>
       </div>
-    </div>
+    </Portal>
   );
 }

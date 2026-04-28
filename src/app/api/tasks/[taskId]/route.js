@@ -1,7 +1,7 @@
 // src/app/api/tasks/[taskId]/route.js
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth/auth';
-import connectDB  from '@/lib/db/mongoose';
+import connectDB from '@/lib/db/mongoose';
 import Task from '@/lib/db/models/Task';
 import Notification from '@/lib/db/models/Notification';
 import { canPerformAction } from '@/lib/auth/permissions';
@@ -16,7 +16,6 @@ export async function GET(request, { params }) {
 
     const task = await Task.findById(taskId)
       .populate('assignees', 'name email role avatar')
-      .populate('deliverableId', 'name type')
       .populate('createdBy', 'name email')
       .lean();
 
@@ -33,7 +32,6 @@ export async function PATCH(request, { params }) {
   try {
     const session = await auth();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
     if (!canPerformAction(session.user.role, 'create_tasks')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
@@ -49,7 +47,6 @@ export async function PATCH(request, { params }) {
       priority,
       internalDeadline,
       externalDeadline,
-      deliverableId,
     } = body;
 
     const task = await Task.findById(taskId);
@@ -62,13 +59,12 @@ export async function PATCH(request, { params }) {
     // Track newly added assignees to notify them
     const prevAssignees = task.assignees.map((a) => a.toString());
 
-    if (title !== undefined) task.title = title.trim();
-    if (description !== undefined) task.description = description.trim();
-    if (assignees !== undefined) task.assignees = assignees;
-    if (priority !== undefined) task.priority = priority;
+    if (title !== undefined)            task.title            = title.trim();
+    if (description !== undefined)      task.description      = description.trim();
+    if (assignees !== undefined)        task.assignees        = assignees;
+    if (priority !== undefined)         task.priority         = priority;
     if (internalDeadline !== undefined) task.internalDeadline = internalDeadline || null;
     if (externalDeadline !== undefined) task.externalDeadline = externalDeadline || null;
-    if (deliverableId !== undefined) task.deliverableId = deliverableId || null;
 
     await task.save();
 
@@ -81,11 +77,11 @@ export async function PATCH(request, { params }) {
         await Notification.insertMany(
           newAssignees.map((recipientId) => ({
             recipientId,
-            type: 'task_assigned',
-            message: `You were assigned to task: ${task.title}`,
+            type:       'task_assigned',
+            message:    `You were assigned to task: ${task.title}`,
             entityType: 'task',
-            entityId: task._id,
-            brandId: task.brandId,
+            entityId:   task._id,
+            brandId:    task.brandId,
           }))
         );
       }
@@ -93,7 +89,6 @@ export async function PATCH(request, { params }) {
 
     const updated = await Task.findById(taskId)
       .populate('assignees', 'name email role avatar')
-      .populate('deliverableId', 'name type')
       .populate('createdBy', 'name email')
       .lean();
 
@@ -108,7 +103,6 @@ export async function DELETE(request, { params }) {
   try {
     const session = await auth();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
     if (!canPerformAction(session.user.role, 'create_tasks')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
