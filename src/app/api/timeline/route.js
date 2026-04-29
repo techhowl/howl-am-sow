@@ -1,3 +1,4 @@
+// src/app/api/timeline/route.js
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth/auth';
 import connectDB from '@/lib/db/mongoose';
@@ -14,35 +15,30 @@ export async function GET(req) {
 
     const isAdminOrAM = ['admin', 'account_manager'].includes(session.user.role);
 
-    let brandIds;
+    let filter = { status: { $ne: 'live' } };
 
     if (isAdminOrAM) {
-      // Admin/AM see all brands
-      const brands = await Brand.find({ isActive: true }).select('_id').lean();
-      brandIds = brands.map((b) => b._id);
+      // Admin/AM see all tasks across all active brands
+      const brands   = await Brand.find({ isActive: true }).select('_id').lean();
+      const brandIds = brands.map((b) => b._id);
+      filter.brandId = { $in: brandIds };
     } else {
-      // Other roles see only brands they are members of
+      // Employees only see tasks assigned to them in brands they belong to
       const memberships = await BrandMember.find({ userId: session.user.id }).select('brandId').lean();
-      brandIds = memberships.map((m) => m.brandId);
+      const brandIds    = memberships.map((m) => m.brandId);
+
+      if (brandIds.length === 0) {
+        return NextResponse.json({ tasks: [] });
+      }
+
+      filter.brandId   = { $in: brandIds };
+      filter.assignees = session.user.id;
     }
 
-    if (brandIds.length === 0) {
-      return NextResponse.json({ tasks: [] });
-    }
-
-    // Fetch all non-live tasks that have at least one deadline
-    const tasks = await Task.find({
-      brandId: { $in: brandIds },
-      status: { $ne: 'live' },
-      $or: [
-        { internalDeadline: { $exists: true, $ne: null } },
-        { externalDeadline: { $exists: true, $ne: null } },
-      ],
-    })
-      .populate('brandId', 'name color')
+    const tasks = await Task.find(filter)
+      .populate('brandId',   'name color')
       .populate('assignees', 'name email role')
-      .populate('deliverableId', 'name type')
-      .sort({ internalDeadline: 1, externalDeadline: 1 })
+      .sort({ internalDeadline: 1, externalDeadline: 1, createdAt: -1 })
       .lean();
 
     return NextResponse.json({ tasks });

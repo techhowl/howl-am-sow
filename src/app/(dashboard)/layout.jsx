@@ -1,12 +1,17 @@
+// src/app/(dashboard)/layout.jsx
 import Sidebar from '@/components/layout/Sidebar'
+import TaskToast from '@/components/shared/TaskToast'
 
 export default function DashboardLayout({ children }) {
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#f9fafb' }}>
+    <div className="min-h-screen bg-gray-50">
       <Sidebar />
-      <main style={{ flex: 1, marginLeft: '250px', minHeight: '100vh' }}>
+      {/* Main content — offset exactly 220px to match sidebar width */}
+      <main style={{ marginLeft: '220px', minHeight: '100vh' }}>
         {children}
       </main>
+      {/* Toast notifications for employees */}
+      <TaskToast />
     </div>
   )
 }
