@@ -4,8 +4,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { format, addMonths, subMonths } from 'date-fns';
-import { BarChart2, ChevronLeft, ChevronRight, Download, ArrowLeft, Target, CheckCircle2, Clock, AlertTriangle, Settings } from 'lucide-react';
+import { BarChart2, ChevronLeft, ChevronRight, Download, ArrowLeft, Target, CheckCircle2, AlertTriangle, Settings } from 'lucide-react';
 import Link from 'next/link';
+import ScopeVarianceSection from '@/components/brands/ScopeVarianceSection';
 
 function exportCSV(data, filename) {
   if (!data.length) return;
@@ -33,7 +34,6 @@ function getTextColor(percent, overDelivered) {
   return 'text-red-500';
 }
 
-// ── SOW Type Row ───────────────────────────────────────────────────────────
 function SOWTypeRow({ item }) {
   const hasTarget = item.target !== null;
   const pct       = item.percentComplete;
@@ -43,15 +43,12 @@ function SOWTypeRow({ item }) {
   return (
     <div className="px-5 py-4 border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
       <div className="flex items-center gap-4">
-        {/* Type name */}
         <div className="w-36 shrink-0">
           <p className="text-sm font-semibold text-gray-900">{item.type}</p>
           {!hasTarget && (
             <p className="text-[10px] text-gray-400 mt-0.5">No SOW target</p>
           )}
         </div>
-
-        {/* Progress bar */}
         <div className="flex-1">
           <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
             <div
@@ -60,8 +57,6 @@ function SOWTypeRow({ item }) {
             />
           </div>
         </div>
-
-        {/* Numbers */}
         <div className="w-32 shrink-0 text-right">
           {hasTarget ? (
             <div>
@@ -79,8 +74,6 @@ function SOWTypeRow({ item }) {
             <p className="text-[10px] text-emerald-600 font-medium mt-0.5">+{item.surplus} over target</p>
           )}
         </div>
-
-        {/* Status pills */}
         <div className="flex items-center gap-1.5 w-40 shrink-0 justify-end">
           {item.pending > 0 && (
             <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100">
@@ -101,7 +94,6 @@ function SOWTypeRow({ item }) {
   );
 }
 
-// ── Main Page ──────────────────────────────────────────────────────────────
 export default function BrandAnalyticsPage() {
   const params   = useParams();
   const router   = useRouter();
@@ -127,8 +119,6 @@ export default function BrandAnalyticsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-
-      {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 pt-5 pb-4">
         <button onClick={() => router.back()} className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 mb-4 transition-colors">
           <ArrowLeft className="w-3.5 h-3.5" />Back
@@ -146,7 +136,6 @@ export default function BrandAnalyticsPage() {
             )}
           </div>
           <div className="flex items-center gap-3">
-            {/* Month navigator */}
             <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
               <button onClick={() => setRefDate((d) => subMonths(d, 1))} className="p-2 hover:bg-gray-50 transition-colors border-r border-gray-200">
                 <ChevronLeft className="w-3.5 h-3.5 text-gray-500" />
@@ -156,7 +145,6 @@ export default function BrandAnalyticsPage() {
                 <ChevronRight className="w-3.5 h-3.5 text-gray-500" />
               </button>
             </div>
-            {/* SOW settings link */}
             <Link href={`/brands/${brandId}`} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-indigo-600 border border-gray-200 hover:border-indigo-300 px-3 py-2 rounded-lg transition-colors">
               <Settings className="w-3.5 h-3.5" />Edit SOW
             </Link>
@@ -164,14 +152,14 @@ export default function BrandAnalyticsPage() {
         </div>
       </div>
 
-      <div className="px-6 py-6 space-y-5 max-w-5xl">
+      <div className="px-6 py-6 space-y-5 max-w-6xl">
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="w-6 h-6 border-2 border-gray-200 border-t-indigo-500 rounded-full animate-spin" />
           </div>
         ) : !data ? null : (
           <>
-            {/* ── SOW OVERVIEW ── */}
+            {/* SOW OVERVIEW */}
             <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
@@ -194,7 +182,6 @@ export default function BrandAnalyticsPage() {
                   </Link>
                 )}
               </div>
-
               {sow && sow.totalTasks === 0 ? (
                 <div className="text-center py-10">
                   <Target className="w-8 h-8 text-gray-200 mx-auto mb-2" />
@@ -202,7 +189,6 @@ export default function BrandAnalyticsPage() {
                 </div>
               ) : sow && (
                 <div className="px-5 py-5 space-y-5">
-                  {/* Overall progress bar */}
                   {sow.totalTarget && (
                     <div className="space-y-2">
                       <div className="w-full h-4 bg-gray-100 rounded-full overflow-hidden">
@@ -228,8 +214,6 @@ export default function BrandAnalyticsPage() {
                       </div>
                     </div>
                   )}
-
-                  {/* Summary stats */}
                   <div className="grid grid-cols-4 gap-3">
                     {[
                       { label: 'Committed',   value: sow.totalTarget ?? sow.totalTasks, color: 'bg-gray-50 border-gray-200',    v: 'text-gray-900'    },
@@ -243,8 +227,6 @@ export default function BrandAnalyticsPage() {
                       </div>
                     ))}
                   </div>
-
-                  {/* Carry-overs notice */}
                   {sow.carryOvers?.filter((c) => c.confirmedByAM).length > 0 && (
                     <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl">
                       <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
@@ -252,7 +234,7 @@ export default function BrandAnalyticsPage() {
                         <p className="text-xs font-semibold text-amber-800">Applied carry-overs</p>
                         <div className="text-xs text-amber-700 mt-1 space-y-0.5">
                           {sow.carryOvers.filter((c) => c.confirmedByAM).map((co) => (
-                            <p key={co.type}>• {co.type}: {co.amount > 0 ? '+' : ''}{co.amount} from {co.fromMonth}</p>
+                            <p key={co.type}>• {co.type}: {co.amount > 0 ? '+' : ''}{co.amount} units from {co.fromMonth}</p>
                           ))}
                         </div>
                       </div>
@@ -262,7 +244,13 @@ export default function BrandAnalyticsPage() {
               )}
             </div>
 
-            {/* ── SOW BY CONTENT TYPE ── */}
+            {/* SCOPE & VARIANCE (NEW) */}
+            <ScopeVarianceSection
+              budgetSummary={data.budgetSummary}
+              sowByType={data.sowByType || []}
+            />
+
+            {/* SOW BY CONTENT TYPE (unit-level progress) */}
             {data.sowByType?.length > 0 && (
               <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
@@ -277,19 +265,16 @@ export default function BrandAnalyticsPage() {
                     <Download className="w-3.5 h-3.5" />Export CSV
                   </button>
                 </div>
-
-                {/* Column headers */}
                 <div className="grid px-5 py-2.5 bg-gray-50 border-b border-gray-100" style={{ gridTemplateColumns: '144px 1fr 128px 160px' }}>
                   {['Type', 'Progress', 'Achieved / Target', 'Status'].map((h) => (
                     <p key={h} className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">{h}</p>
                   ))}
                 </div>
-
                 {data.sowByType.map((item) => <SOWTypeRow key={item.type} item={item} />)}
               </div>
             )}
 
-            {/* ── TEAM PERFORMANCE ── */}
+            {/* TEAM PERFORMANCE */}
             <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-gray-900">Team Performance</h2>
@@ -300,7 +285,6 @@ export default function BrandAnalyticsPage() {
                   <Download className="w-3.5 h-3.5" />Export CSV
                 </button>
               </div>
-
               {data.userStats.length === 0 ? (
                 <p className="px-5 py-8 text-sm text-gray-400">No team data for this period</p>
               ) : (

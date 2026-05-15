@@ -22,6 +22,7 @@ const iStyle = {
   fontSize: 13, padding: '8px 12px', fontFamily: 'inherit', boxSizing: 'border-box',
   outline: 'none', background: '#fff',
 }
+
 const btnStyle = (bg, color) => ({
   display: 'inline-flex', alignItems: 'center', gap: 6,
   padding: '9px 18px', fontSize: 13, fontWeight: 500,
@@ -29,6 +30,15 @@ const btnStyle = (bg, color) => ({
   fontFamily: 'inherit', background: bg, color,
   transition: 'all 0.15s ease',
 })
+
+function formatINR(n) {
+  if (n == null || isNaN(n)) return '₹0'
+  return '₹' + Math.round(n).toLocaleString('en-IN')
+}
+function formatUnits(n) {
+  if (n == null || isNaN(n)) return '0'
+  return Number.isInteger(n) ? String(n) : n.toFixed(2)
+}
 
 function StepBar({ step }) {
   return (
@@ -101,12 +111,21 @@ function Step2({ sowItems, setSowItems }) {
 
   function addType(type) {
     if (sowItems.find((i) => i.type === type)) return
-    setSowItems((prev) => [...prev, { type, target: 1, isCustom: !FIXED_SOW_TYPES.includes(type) }])
+    setSowItems((prev) => [...prev, {
+      type, target: 1, unitRate: 0,
+      isCustom: !FIXED_SOW_TYPES.includes(type),
+    }])
   }
   function removeItem(type) { setSowItems((prev) => prev.filter((i) => i.type !== type)) }
   function updateTarget(type, val) {
-    const num = Math.max(0, parseInt(val) || 0)
+    // Allow decimals — clamp >= 0
+    let num = parseFloat(val)
+    if (isNaN(num) || num < 0) num = 0
     setSowItems((prev) => prev.map((i) => i.type === type ? { ...i, target: num } : i))
+  }
+  function updateUnitRate(type, val) {
+    const num = val === '' ? 0 : Math.max(0, parseInt(val) || 0)
+    setSowItems((prev) => prev.map((i) => i.type === type ? { ...i, unitRate: num } : i))
   }
   function addCustom() {
     const t = customType.trim(); if (!t) return
@@ -115,12 +134,13 @@ function Step2({ sowItems, setSowItems }) {
 
   const usedTypes   = new Set(sowItems.map((i) => i.type))
   const unusedFixed = FIXED_SOW_TYPES.filter((t) => !usedTypes.has(t))
-  const totalSOW    = sowItems.reduce((s, i) => s + i.target, 0)
+  const totalUnits  = sowItems.reduce((s, i) => s + (i.target || 0), 0)
+  const totalScope  = sowItems.reduce((s, i) => s + (i.target || 0) * (i.unitRate || 0), 0)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <p style={{ fontSize: 13, color: '#6b7280', margin: 0, lineHeight: 1.6 }}>
-        Define the monthly Scope of Work for this brand. These targets track what's committed and what's achieved each month.
+        Define monthly targets and rate per unit. Decimal targets are allowed (e.g. 0.33 for once-per-quarter items).
       </p>
 
       {unusedFixed.length > 0 && (
@@ -149,7 +169,7 @@ function Step2({ sowItems, setSowItems }) {
         <div style={{ display: 'flex', gap: 8 }}>
           <input autoFocus value={customType} onChange={(e) => setCustomType(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addCustom()}
-            placeholder="e.g. Motion Poster, Infographic..."
+            placeholder="e.g. Reels & Videos (30-45 sec), Job Postings..."
             style={{ ...iStyle, flex: 1 }}
             onFocus={(e) => { e.target.style.borderColor = '#4f46e5'; e.target.style.boxShadow = '0 0 0 3px rgba(79,70,229,0.08)' }}
             onBlur={(e)  => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none' }}
@@ -166,36 +186,58 @@ function Step2({ sowItems, setSowItems }) {
         </div>
       ) : (
         <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 150px 40px', padding: '8px 14px', background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-            <p style={{ fontSize: 10, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>Content Type</p>
-            <p style={{ fontSize: 10, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>Monthly Target</p>
+          {/* Header */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 110px 100px 36px', padding: '8px 12px', background: '#f9fafb', borderBottom: '1px solid #e5e7eb', gap: 8 }}>
+            <p style={{ fontSize: 10, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>Type</p>
+            <p style={{ fontSize: 10, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0, textAlign: 'center' }}>Scope</p>
+            <p style={{ fontSize: 10, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0, textAlign: 'center' }}>Unit ₹</p>
+            <p style={{ fontSize: 10, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0, textAlign: 'right' }}>Total ₹</p>
             <div />
           </div>
-          {sowItems.map((item, idx) => (
-            <div key={item.type} style={{ display: 'grid', gridTemplateColumns: '1fr 150px 40px', padding: '10px 14px', alignItems: 'center', borderBottom: idx < sowItems.length - 1 ? '1px solid #f3f4f6' : 'none', background: '#fff' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <p style={{ fontSize: 13, fontWeight: 500, color: '#111827', margin: 0 }}>{item.type}</p>
-                {item.isCustom && <span style={{ fontSize: 9, fontWeight: 600, padding: '2px 6px', borderRadius: 99, background: '#f3e8ff', color: '#7c3aed', border: '1px solid #e9d5ff' }}>CUSTOM</span>}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <button type="button" onClick={() => updateTarget(item.type, item.target - 1)}
-                  style={{ width: 24, height: 24, borderRadius: 6, border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
-                <input type="number" min="0" value={item.target}
+          {/* Rows */}
+          {sowItems.map((item, idx) => {
+            const lineTotal = (item.target || 0) * (item.unitRate || 0)
+            return (
+              <div key={item.type} style={{
+                display: 'grid', gridTemplateColumns: '1fr 80px 110px 100px 36px',
+                padding: '9px 12px', alignItems: 'center', gap: 8,
+                borderBottom: idx < sowItems.length - 1 ? '1px solid #f3f4f6' : 'none',
+                background: '#fff',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                  <p style={{ fontSize: 12, fontWeight: 500, color: '#111827', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item.type}>{item.type}</p>
+                  {item.isCustom && <span style={{ fontSize: 8, fontWeight: 600, padding: '1px 5px', borderRadius: 99, background: '#f3e8ff', color: '#7c3aed', border: '1px solid #e9d5ff', flexShrink: 0 }}>NEW</span>}
+                </div>
+                <input
+                  type="number" step="0.01" min="0" value={item.target}
                   onChange={(e) => updateTarget(item.type, e.target.value)}
-                  style={{ width: 52, textAlign: 'center', border: '1px solid #e5e7eb', borderRadius: 6, padding: '4px 6px', fontSize: 13, fontWeight: 600, color: '#111827', fontFamily: 'inherit', outline: 'none' }} />
-                <button type="button" onClick={() => updateTarget(item.type, item.target + 1)}
-                  style={{ width: 24, height: 24, borderRadius: 6, border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                  style={{ width: '100%', textAlign: 'center', border: '1px solid #e5e7eb', borderRadius: 6, padding: '5px 6px', fontSize: 12, fontWeight: 600, color: '#111827', fontFamily: 'inherit', outline: 'none' }}
+                />
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: '#9ca3af' }}>₹</span>
+                  <input
+                    type="number" min="0" value={item.unitRate || 0}
+                    onChange={(e) => updateUnitRate(item.type, e.target.value)}
+                    placeholder="0"
+                    style={{ width: '100%', textAlign: 'center', paddingLeft: 18, border: '1px solid #e5e7eb', borderRadius: 6, padding: '5px 6px 5px 18px', fontSize: 12, color: '#111827', fontFamily: 'inherit', outline: 'none' }}
+                  />
+                </div>
+                <p style={{ fontSize: 12, fontWeight: 600, color: lineTotal > 0 ? '#111827' : '#d1d5db', margin: 0, textAlign: 'right' }}>{formatINR(lineTotal)}</p>
+                <button type="button" onClick={() => removeItem(item.type)}
+                  style={{ width: 24, height: 24, borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer', color: '#d1d5db', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#fef2f2'; e.currentTarget.style.color = '#dc2626' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#d1d5db' }}
+                ><Trash2 size={12} /></button>
               </div>
-              <button type="button" onClick={() => removeItem(item.type)}
-                style={{ width: 28, height: 28, borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer', color: '#d1d5db', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = '#fef2f2'; e.currentTarget.style.color = '#dc2626' }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#d1d5db' }}
-              ><Trash2 size={13} /></button>
-            </div>
-          ))}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 150px 40px', padding: '10px 14px', background: '#f9fafb', borderTop: '1px solid #e5e7eb' }}>
-            <p style={{ fontSize: 12, fontWeight: 600, color: '#374151', margin: 0 }}>Total SOW / month</p>
-            <p style={{ fontSize: 14, fontWeight: 700, color: '#4f46e5', margin: 0 }}>{totalSOW} deliverables</p>
+            )
+          })}
+          {/* Footer total */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 110px 100px 36px', padding: '10px 12px', background: '#f9fafb', borderTop: '1px solid #e5e7eb', gap: 8, alignItems: 'center' }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', margin: 0 }}>Monthly Scope Total</p>
+            <p style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', margin: 0, textAlign: 'center' }}>{formatUnits(totalUnits)}</p>
+            <div />
+            <p style={{ fontSize: 14, fontWeight: 700, color: '#4f46e5', margin: 0, textAlign: 'right' }}>{formatINR(totalScope)}</p>
+            <div />
           </div>
         </div>
       )}
@@ -288,7 +330,12 @@ export default function CreateBrandModal({ onClose, onCreated }) {
     try {
       const res = await fetch('/api/brands', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: form.name.trim(), color: form.color, sowItems, memberIds: selectedMembers }),
+        body: JSON.stringify({
+          name: form.name.trim(),
+          color: form.color,
+          sowItems,
+          memberIds: selectedMembers,
+        }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Something went wrong'); return }
@@ -304,9 +351,8 @@ export default function CreateBrandModal({ onClose, onCreated }) {
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: 16 }}
     >
       <div onClick={(e) => e.stopPropagation()}
-        style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 20, boxShadow: '0 25px 80px rgba(0,0,0,0.15)', width: '100%', maxWidth: 540, maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+        style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 20, boxShadow: '0 25px 80px rgba(0,0,0,0.15)', width: '100%', maxWidth: 600, maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
       >
-        {/* Header */}
         <div style={{ padding: '24px 24px 0', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
             <div>
@@ -321,7 +367,6 @@ export default function CreateBrandModal({ onClose, onCreated }) {
           <StepBar step={step} />
         </div>
 
-        {/* Body */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '0 24px 16px' }}>
           {step === 0 && <Step1 form={form} setForm={setForm} />}
           {step === 1 && <Step2 sowItems={sowItems} setSowItems={setSowItems} />}
@@ -334,7 +379,6 @@ export default function CreateBrandModal({ onClose, onCreated }) {
           </div>
         )}
 
-        {/* Footer */}
         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '14px 24px', borderTop: '1px solid #f3f4f6', flexShrink: 0 }}>
           {step > 0
             ? <button type="button" onClick={() => setStep((s) => s - 1)} style={btnStyle('#f3f4f6', '#374151')}><ChevronLeft size={14} />Back</button>

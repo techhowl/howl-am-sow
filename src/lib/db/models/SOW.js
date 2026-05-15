@@ -15,17 +15,19 @@ export const FIXED_SOW_TYPES = [
 ]
 
 const SOWItemSchema = new mongoose.Schema({
-  type:     { type: String, required: true }, // e.g. "Video", "Static", custom
-  target:   { type: Number, required: true, min: 0 }, // monthly target count
-  isCustom: { type: Boolean, default: false }, // true if AM added this type
+  type:     { type: String, required: true },         // e.g. "Reels & Videos (Upto 30-45 sec)"
+  target:   { type: Number, required: true, min: 0 }, // monthly target — decimals allowed (e.g. 0.33)
+  unitRate: { type: Number, default: 0, min: 0 },     // ₹ per unit (single retainer rate, integer)
+  isCustom: { type: Boolean, default: false },
 }, { _id: false })
 
 const CarryOverSchema = new mongoose.Schema({
-  type:      { type: String, required: true },
-  amount:    { type: Number, required: true }, // negative = deficit, positive = surplus
-  fromMonth: { type: String, required: true }, // "2025-04"
-  note:      { type: String, default: '' },
-  confirmedByAM: { type: Boolean, default: false },
+  type:           { type: String, required: true },
+  amount:         { type: Number, required: true },  // unit adjustment (negative = reduce scope, positive = increase)
+  moneyImpact:    { type: Number, default: 0 },      // ₹ impact = unitRate × amount (signed)
+  fromMonth:      { type: String, required: true },  // "2025-04"
+  note:           { type: String, default: '' },
+  confirmedByAM:  { type: Boolean, default: false },
 }, { _id: true })
 
 const SOWSchema = new mongoose.Schema({
@@ -34,25 +36,25 @@ const SOWSchema = new mongoose.Schema({
     ref:      'Brand',
     required: true,
   },
-  // Month this SOW applies to — stored as "YYYY-MM" string
   month: {
     type:     String,
-    required: true, // e.g. "2025-04"
+    required: true,                                  // "YYYY-MM"
   },
-  items: [SOWItemSchema], // array of { type, target }
-  carryOvers: [CarryOverSchema], // carry-overs from previous month
-  createdBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref:  'User',
-  },
-  updatedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref:  'User',
-  },
+  items:      [SOWItemSchema],
+  carryOvers: [CarryOverSchema],
+  createdBy:  { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  updatedBy:  { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true })
 
-// Compound unique index — one SOW per brand per month
 SOWSchema.index({ brandId: 1, month: 1 }, { unique: true })
+
+// ─── Helpers (used in API layer) ──────────────────────────────────────
+export function itemScopeValue(item) {
+  return (item.target || 0) * (item.unitRate || 0)
+}
+export function itemDeliveredValue(item, achievedUnits) {
+  return (achievedUnits || 0) * (item.unitRate || 0)
+}
 
 const SOW = mongoose.models.SOW || mongoose.model('SOW', SOWSchema)
 export default SOW

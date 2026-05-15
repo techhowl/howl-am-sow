@@ -14,87 +14,112 @@ export async function GET(req, { params }) {
     if (!['admin', 'account_manager'].includes(session.user.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
-
     await connectDB();
-    const { brandId }   = await params;
+
+    const { brandId }      = await params;
     const { searchParams } = new URL(req.url);
-    const dateParam     = searchParams.get('date') || new Date().toISOString();
-    const refDate       = new Date(dateParam);
-    const month         = format(refDate, 'yyyy-MM');
-    const periodStart   = startOfMonth(refDate);
-    const periodEnd     = endOfMonth(refDate);
+    const dateParam        = searchParams.get('date') || new Date().toISOString();
+    const refDate          = new Date(dateParam);
+    const month            = format(refDate, 'yyyy-MM');
+    const periodStart      = startOfMonth(refDate);
+    const periodEnd        = endOfMonth(refDate);
 
     const brand = await Brand.findById(brandId).lean();
     if (!brand) return NextResponse.json({ error: 'Brand not found' }, { status: 404 });
 
-    // Get SOW targets for this month
     const sow = await SOW.findOne({ brandId, month }).lean();
 
-    // Get all tasks created this month
     const tasks = await Task.find({
       brandId,
       createdAt: { $gte: periodStart, $lte: periodEnd },
     }).populate('assignees', 'name email role').lean();
 
-    // ── SOW by content type ───────────────────────────────────────────────
-    // Build a map of all types that appear in either SOW targets or tasks
+    // ── Per-type rows (scope vs delivery) ─────────────────────────────────
     const typeSet = new Set([
       ...(sow?.items || []).map((i) => i.type),
       ...tasks.map((t) => t.type).filter(Boolean),
     ]);
 
     const sowByType = [...typeSet].map((type) => {
-      const target   = sow?.items?.find((i) => i.type === type)?.target ?? null
+      const sowItem   = sow?.items?.find((i) => i.type === type)
+      const target    = sowItem?.target ?? null
+      const unitRate  = sowItem?.unitRate ?? 0
       const typeTasks = tasks.filter((t) => t.type === type)
       const achieved  = typeTasks.filter((t) => ['approved', 'live'].includes(t.status)).length
       const pending   = typeTasks.filter((t) => !['approved', 'live', 'rejected'].includes(t.status)).length
       const rejected  = typeTasks.filter((t) => t.status === 'rejected').length
       const total     = typeTasks.length
 
-      // % based on target if set, otherwise based on total tasks
+      const scopeValue     = (target || 0) * unitRate
+      const deliveredValue = achieved * unitRate
+      const variance       = deliveredValue - scopeValue
+      const pendingValue   = pending * unitRate
+
       const denominator = target !== null ? target : total
       const percent     = denominator > 0 ? Math.round((achieved / denominator) * 100) : 0
 
       return {
         type,
-        target,          // null if no SOW defined for this type
-        total,           // tasks created
+        target,
+        unitRate,
+        total,
         achieved,
         pending,
         rejected,
-        percentComplete: Math.min(percent, 100), // cap at 100%
+        percentComplete: Math.min(percent, 100),
         overDelivered:   target !== null && achieved > target,
         surplus:         target !== null ? Math.max(0, achieved - target) : 0,
+        scopeValue,
+        deliveredValue,
+        pendingValue,
+        variance,
       }
     }).sort((a, b) => {
-      // Sort: types with targets first, then alphabetical
       if (a.target !== null && b.target === null) return -1
       if (a.target === null && b.target !== null) return 1
       return a.type.localeCompare(b.type)
     })
 
-    // ── Overall SOW summary ───────────────────────────────────────────────
-    const totalTarget  = sow?.items?.reduce((s, i) => s + i.target, 0) ?? null
+    // ── Overall SOW summary (units) ──────────────────────────────────────
+    const totalTarget   = sow?.items?.reduce((s, i) => s + (i.target || 0), 0) ?? null
     const totalAchieved = tasks.filter((t) => ['approved', 'live'].includes(t.status)).length
     const totalPending  = tasks.filter((t) => !['approved', 'live', 'rejected'].includes(t.status)).length
     const totalRejected = tasks.filter((t) => t.status === 'rejected').length
-
     const overallPercent = totalTarget
       ? Math.min(Math.round((totalAchieved / totalTarget) * 100), 100)
       : tasks.length > 0
         ? Math.round((totalAchieved / tasks.length) * 100)
         : 0
 
+    // ── Overall budget summary (money) ───────────────────────────────────
+    const budgetTotals = sowByType.reduce((acc, row) => ({
+      scopeValue:     acc.scopeValue     + row.scopeValue,
+      deliveredValue: acc.deliveredValue + row.deliveredValue,
+      pendingValue:   acc.pendingValue   + row.pendingValue,
+      variance:       acc.variance       + row.variance,
+    }), { scopeValue: 0, deliveredValue: 0, pendingValue: 0, variance: 0 })
+
+    const budgetSummary = {
+      scopeValue:     budgetTotals.scopeValue,
+      deliveredValue: budgetTotals.deliveredValue,
+      pendingValue:   budgetTotals.pendingValue,
+      variance:       budgetTotals.variance,
+      // % delivered = deliveredValue / scopeValue
+      deliveredPercent: budgetTotals.scopeValue > 0
+        ? Math.round((budgetTotals.deliveredValue / budgetTotals.scopeValue) * 100)
+        : 0,
+    }
+
     const sowSummary = {
       month,
       totalTarget,
-      totalTasks:  tasks.length,
+      totalTasks:      tasks.length,
       totalAchieved,
       totalPending,
       totalRejected,
       percentComplete: overallPercent,
-      hasSowDefined: !!sow,
-      carryOvers:    sow?.carryOvers || [],
+      hasSowDefined:   !!sow,
+      carryOvers:      sow?.carryOvers || [],
     }
 
     // ── Team performance ──────────────────────────────────────────────────
@@ -124,12 +149,13 @@ export async function GET(req, { params }) {
       assignees:t.assignees?.map((a) => a.name).join(', ') || '',
       internalDeadline: t.internalDeadline ? new Date(t.internalDeadline).toISOString().split('T')[0] : '',
       externalDeadline: t.externalDeadline ? new Date(t.externalDeadline).toISOString().split('T')[0] : '',
-      createdAt:new Date(t.createdAt).toISOString().split('T')[0],
+      createdAt: new Date(t.createdAt).toISOString().split('T')[0],
     }));
 
     return NextResponse.json({
       brand, month, periodStart, periodEnd,
       sowSummary, sowByType,
+      budgetSummary,
       userStats, taskList,
     });
   } catch (err) {
