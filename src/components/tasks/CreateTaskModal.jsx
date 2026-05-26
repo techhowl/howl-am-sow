@@ -13,10 +13,11 @@ const FIXED_TASK_TYPES = [
   'Reel', 'Carousel', 'GIF', 'Story', 'Performance Asset', 'Other',
 ];
 
+// Order matches the workflow: Copy → Design → Video
 const WORKFLOW_FLAGS = [
-  { key: 'copyRequired',   label: 'Copy',   active: 'bg-purple-50 border-purple-300 text-purple-700' },
-  { key: 'videoRequired',  label: 'Video',  active: 'bg-violet-50 border-violet-300 text-violet-700' },
-  { key: 'designRequired', label: 'Design', active: 'bg-blue-50   border-blue-300   text-blue-700'   },
+  { key: 'copyRequired',   label: 'Copy'   },
+  { key: 'designRequired', label: 'Design' },
+  { key: 'videoRequired',  label: 'Video'  },
 ];
 
 export default function CreateTaskModal({ brandId, brandMembers = [], onClose, onCreated }) {
@@ -48,10 +49,9 @@ export default function CreateTaskModal({ brandId, brandMembers = [], onClose, o
       .then((data) => {
         const sowTypes = (data.sow?.items || data.baseline || []).map((i) => i.type);
         if (sowTypes.length > 0) {
-          // Merge SOW types with fixed types, SOW types first
           const merged = [...new Set([...sowTypes, ...FIXED_TASK_TYPES])];
           setTaskTypes(merged);
-          setForm((f) => ({ ...f, type: sowTypes[0] })); // default to first SOW type
+          setForm((f) => ({ ...f, type: sowTypes[0] }));
         } else {
           setForm((f) => ({ ...f, type: FIXED_TASK_TYPES[0] }));
         }
@@ -72,11 +72,12 @@ export default function CreateTaskModal({ brandId, brandMembers = [], onClose, o
     }));
   }
 
+  // New order: copy → design → video → sent to client
   function getInitialStatus() {
     if (form.copyRequired)   return 'Copy WIP';
-    if (form.videoRequired)  return 'Video WIP';
     if (form.designRequired) return 'Design WIP';
-    return 'Internal Review';
+    if (form.videoRequired)  return 'Video WIP';
+    return 'Sent to Client';
   }
 
   async function handleSubmit(e) {
@@ -121,7 +122,6 @@ export default function CreateTaskModal({ brandId, brandMembers = [], onClose, o
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
           <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
-
             {/* Title */}
             <div>
               <label style={lbl}>Title *</label>
@@ -163,12 +163,12 @@ export default function CreateTaskModal({ brandId, brandMembers = [], onClose, o
             <div>
               <label style={lbl}>Workflow Stages</label>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {WORKFLOW_FLAGS.map(({ key, label, active }) => {
+                {WORKFLOW_FLAGS.map(({ key, label }) => {
                   const isActive = form[key];
                   const colors = {
                     copyRequired:   { bg: '#faf5ff', border: '#c4b5fd', text: '#6d28d9' },
-                    videoRequired:  { bg: '#f5f3ff', border: '#a78bfa', text: '#7c3aed' },
                     designRequired: { bg: '#eff6ff', border: '#93c5fd', text: '#1d4ed8' },
+                    videoRequired:  { bg: '#f5f3ff', border: '#a78bfa', text: '#7c3aed' },
                   }[key];
                   return (
                     <button key={key} type="button" onClick={() => set(key, !isActive)}

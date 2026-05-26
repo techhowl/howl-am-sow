@@ -10,7 +10,9 @@ import CreateTaskModal from '@/components/tasks/CreateTaskModal';
 import TaskDetailModal from '@/components/tasks/TaskDetailModal';
 import { KANBAN_COLUMNS } from '@/lib/constants/tasks';
 
-const ROW_1 = ['copy_wip', 'video_wip', 'design_wip', 'internal_review'];
+// Row 1 = production stages (copy → design → video), no internal_review
+// Row 2 = client stages
+const ROW_1 = ['copy_wip', 'design_wip', 'video_wip'];
 const ROW_2 = ['sent_to_client', 'approved', 'rejected', 'live'];
 
 export default function TasksPage() {
@@ -22,8 +24,10 @@ export default function TasksPage() {
   const [brandMembers, setBrandMembers] = useState([]);
   const [loading, setLoading]           = useState(true);
   const [error, setError]               = useState('');
+
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedTask, setSelectedTask]       = useState(null);
+
   const [filterPriority, setFilterPriority]   = useState('all');
   const [filterAssignee, setFilterAssignee]   = useState('all');
 
@@ -32,7 +36,6 @@ export default function TasksPage() {
   const fetchData = useCallback(async () => {
     setError('');
     try {
-      // No more deliverables fetch
       const [tasksRes, brandRes, membersRes] = await Promise.all([
         fetch(`/api/brands/${brandId}/tasks`),
         fetch(`/api/brands/${brandId}`),
@@ -58,11 +61,9 @@ export default function TasksPage() {
   function handleTaskCreated(task) {
     setTasks((prev) => [task, ...prev]);
   }
-
   function handleTaskUpdated(updated) {
     setTasks((prev) => prev.map((t) => (t._id === updated._id ? updated : t)));
   }
-
   function handleTaskDeleted(taskId) {
     setTasks((prev) => prev.filter((t) => t._id !== taskId));
   }
@@ -95,7 +96,6 @@ export default function TasksPage() {
 
   return (
     <div className="flex flex-col min-h-screen p-6 md:p-8 bg-gray-50">
-
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -180,9 +180,9 @@ export default function TasksPage() {
         </div>
       )}
 
-      {/* Kanban: 4+4 two-row layout */}
+      {/* Kanban: 3 (production) + 4 (client) two-row layout */}
       <div className="flex flex-col gap-6 flex-1">
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           {ROW_1.map((col) => (
             <KanbanColumn
               key={col}

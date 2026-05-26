@@ -1,5 +1,4 @@
-// lib/db/models/RejectionLog.js
-
+// src/lib/db/models/RejectionLog.js
 import mongoose from 'mongoose'
 
 const RejectionLogSchema = new mongoose.Schema(
@@ -9,14 +8,19 @@ const RejectionLogSchema = new mongoose.Schema(
       ref: 'Task',
       required: true,
     },
+    // Set to null at rejection time. Filled in later when the AM
+    // routes the rejected task back for revision.
     routedBackTo: {
       type: String,
-      enum: ['copy_wip', 'design_wip'],
-      required: true,
+      enum: ['copy_wip', 'video_wip', 'design_wip', null],
+      default: null,
+      // NOT required — unknown until the AM routes it back
     },
+    // Optional: the UI explicitly marks the rejection reason as optional,
+    // so an empty string / missing value must be allowed.
     reason: {
       type: String,
-      required: [true, 'Rejection reason is required'],
+      default: '',
       trim: true,
     },
     rejectedBy: {
@@ -27,6 +31,11 @@ const RejectionLogSchema = new mongoose.Schema(
     rejectedAt: {
       type: Date,
       default: Date.now,
+    },
+    // When the AM routes the task back, record when that happened
+    routedBackAt: {
+      type: Date,
+      default: null,
     },
   },
   {

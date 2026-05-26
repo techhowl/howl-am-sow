@@ -62,6 +62,13 @@ export async function PATCH(request, { params }) {
       task.status = newStatus;
       await task.save();
 
+      // Close the loop: record where the most recent rejection was routed back to
+      await RejectionLog.findOneAndUpdate(
+        { taskId, routedBackTo: null },
+        { routedBackTo: newStatus, routedBackAt: new Date() },
+        { sort: { rejectedAt: -1 } }
+      );
+
       await ActivityLog.create({
         entityType: 'task',
         entityId:   taskId,
@@ -101,10 +108,10 @@ export async function PATCH(request, { params }) {
       task.status = 'rejected';
       await task.save();
 
-      // Log rejection
+      // Log rejection — routedBackTo stays null until AM routes it back
       await RejectionLog.create({
         taskId,
-        routedBackTo: null, // will be set when AM routes it back
+        routedBackTo: null,
         reason:       rejectionReason?.trim() || '',
         rejectedBy:   session.user.id,
         rejectedAt:   new Date(),
@@ -207,7 +214,6 @@ export async function PATCH(request, { params }) {
 
     let notifType    = 'status_changed';
     let notifMessage = `Task "${task.title}" moved to ${newStatus.replace(/_/g, ' ')}`;
-
     if (newStatus === 'approved') { notifType = 'task_approved'; notifMessage = `Task "${task.title}" was approved`; }
     if (newStatus === 'live')     { notifType = 'task_live';     notifMessage = `Task "${task.title}" is now live`; }
 
@@ -228,7 +234,6 @@ export async function PATCH(request, { params }) {
       .populate('assignees', 'name email role avatar')
       .populate('createdBy', 'name email')
       .lean();
-
     return NextResponse.json({ task: populated });
   } catch (err) {
     console.error('PATCH /tasks/[taskId]/status error:', err);

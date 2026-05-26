@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, ChevronRight, ChevronLeft, Trash2, Edit2, Check, RotateCcw, Link2, Calendar } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Trash2, Edit2, Check, RotateCcw, Calendar } from 'lucide-react';
 import Portal from '@/components/shared/Portal';
 import PriorityBadge from '@/components/shared/PriorityBadge';
 import DeadlineBadge from '@/components/shared/DeadlineBadge';
@@ -11,49 +11,48 @@ import CommentThread from '@/components/tasks/CommentThread';
 import ActivityFeed from '@/components/tasks/ActivityFeed';
 import { format } from 'date-fns';
 
+// Workflow order: copy → design → video → sent_to_client → approved → live
+// Stages can skip ahead when not required (no-video task: design_wip → sent_to_client)
 const VALID_TRANSITIONS = {
-  copy_wip:        ['video_wip', 'design_wip', 'internal_review'],
-  video_wip:       ['design_wip', 'internal_review'],
-  design_wip:      ['internal_review'],
-  internal_review: ['sent_to_client'],
-  sent_to_client:  ['approved', 'rejected'],
-  approved:        ['live'],
-  rejected:        [],
-  live:            [],
+  copy_wip:       ['design_wip', 'video_wip', 'sent_to_client'],
+  design_wip:     ['video_wip', 'sent_to_client'],
+  video_wip:      ['sent_to_client'],
+  sent_to_client: ['approved', 'rejected'],
+  approved:       ['live'],
+  rejected:       [],
+  live:           [],
 };
 
 const BACKWARD_TRANSITIONS = {
-  video_wip:       'copy_wip',
-  design_wip:      'video_wip',
-  internal_review: 'design_wip',
-  sent_to_client:  'internal_review',
-  approved:        'sent_to_client',
+  design_wip:     'copy_wip',
+  video_wip:      'design_wip',
+  sent_to_client: 'video_wip',
+  approved:       'sent_to_client',
 };
 
 const STATUS_LABELS = {
-  copy_wip:        'Copy WIP',
-  video_wip:       'Video WIP',
-  design_wip:      'Design WIP',
-  internal_review: 'Internal Review',
-  sent_to_client:  'Sent to Client',
-  approved:        'Approved',
-  rejected:        'Rejected',
-  live:            'Live',
+  copy_wip:       'Copy WIP',
+  design_wip:     'Design WIP',
+  video_wip:      'Video WIP',
+  sent_to_client: 'Sent to Client',
+  approved:       'Approved',
+  rejected:       'Rejected',
+  live:           'Live',
 };
 
 const STATUS_COLORS = {
-  copy_wip:        { bg: '#faf5ff', color: '#7c3aed', border: '#e9d5ff' },
-  video_wip:       { bg: '#f5f3ff', color: '#6d28d9', border: '#ddd6fe' },
-  design_wip:      { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' },
-  internal_review: { bg: '#fffbeb', color: '#b45309', border: '#fde68a' },
-  sent_to_client:  { bg: '#ecfeff', color: '#0e7490', border: '#a5f3fc' },
-  approved:        { bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0' },
-  rejected:        { bg: '#fef2f2', color: '#dc2626', border: '#fecaca' },
-  live:            { bg: '#ecfdf5', color: '#047857', border: '#6ee7b7' },
+  copy_wip:       { bg: '#faf5ff', color: '#7c3aed', border: '#e9d5ff' },
+  design_wip:     { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' },
+  video_wip:      { bg: '#f5f3ff', color: '#6d28d9', border: '#ddd6fe' },
+  sent_to_client: { bg: '#ecfeff', color: '#0e7490', border: '#a5f3fc' },
+  approved:       { bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0' },
+  rejected:       { bg: '#fef2f2', color: '#dc2626', border: '#fecaca' },
+  live:           { bg: '#ecfdf5', color: '#047857', border: '#6ee7b7' },
 };
 
 const PRIORITY_OPTIONS = ['high', 'medium', 'low'];
 const PRIORITY_LABELS  = { high: 'High', medium: 'Medium', low: 'Low' };
+
 const TABS = [
   { key: 'details',  label: 'Details'  },
   { key: 'comments', label: 'Comments' },
@@ -101,10 +100,11 @@ function LiveDateDialog({ onConfirm, onCancel, loading }) {
 
 // ── Route from rejected dialog ─────────────────────────────────────────────
 function RouteFromRejectedDialog({ task, onConfirm, onClose, loading }) {
+  // Options follow workflow order: copy → design → video
   const options = [];
-  if (task.copyRequired  !== false) options.push({ value: 'copy_wip',  label: 'Copy WIP' });
-  if (task.videoRequired)           options.push({ value: 'video_wip', label: 'Video WIP' });
+  if (task.copyRequired   !== false) options.push({ value: 'copy_wip',   label: 'Copy WIP' });
   if (task.designRequired !== false) options.push({ value: 'design_wip', label: 'Design WIP' });
+  if (task.videoRequired)            options.push({ value: 'video_wip',  label: 'Video WIP' });
   if (options.length === 0) options.push({ value: 'copy_wip', label: 'Copy WIP' });
 
   const [routeTo, setRouteTo] = useState(options[0].value);
@@ -167,7 +167,6 @@ function RouteFromRejectedDialog({ task, onConfirm, onClose, loading }) {
 export default function TaskDetailModal({
   task: initialTask,
   brandMembers = [],
-  deliverables = [],
   currentUserRole,
   currentUserId,
   onClose,
@@ -184,7 +183,6 @@ export default function TaskDetailModal({
     internalDeadline: initialTask.internalDeadline ? format(new Date(initialTask.internalDeadline), 'yyyy-MM-dd') : '',
     externalDeadline: initialTask.externalDeadline ? format(new Date(initialTask.externalDeadline), 'yyyy-MM-dd') : '',
     assignees:        initialTask.assignees?.map((a) => a._id || a) || [],
-    deliverableId:    initialTask.deliverableId?._id || initialTask.deliverableId || '',
   });
   const [saving, setSaving]                     = useState(false);
   const [transitioning, setTransitioning]       = useState(false);
@@ -221,7 +219,6 @@ export default function TaskDetailModal({
           ...editForm,
           internalDeadline: editForm.internalDeadline || null,
           externalDeadline: editForm.externalDeadline || null,
-          deliverableId:    editForm.deliverableId    || null,
         }),
       });
       const data = await res.json();
@@ -270,7 +267,6 @@ export default function TaskDetailModal({
       <Portal>
         <div style={backdropStyle} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
           <div style={{ ...modalBoxStyle, maxWidth: '640px', maxHeight: '88vh' }} onClick={(e) => e.stopPropagation()}>
-
             {/* Header */}
             <div style={{ ...modalHeaderStyle, alignItems: 'flex-start' }}>
               <div style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
@@ -353,11 +349,9 @@ export default function TaskDetailModal({
 
             {/* Body */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
-
               {/* DETAILS TAB */}
               {activeTab === 'details' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-
                   {/* Description */}
                   <div>
                     <label style={labelStyle}>Description</label>
@@ -387,20 +381,12 @@ export default function TaskDetailModal({
                       ) : <PriorityBadge priority={task.priority} />}
                     </div>
 
-                    {/* Deliverable */}
+                    {/* Content Type */}
                     <div>
-                      <label style={labelStyle}>Deliverable</label>
-                      {editing ? (
-                        <select value={editForm.deliverableId} onChange={(e) => setEditForm({ ...editForm, deliverableId: e.target.value })} style={inputStyle}>
-                          <option value="">None</option>
-                          {deliverables.map((d) => <option key={d._id} value={d._id}>{d.name}</option>)}
-                        </select>
-                      ) : task.deliverableId ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#374151' }}>
-                          <Link2 size={13} color="#9ca3af" />
-                          {task.deliverableId.name}
-                        </div>
-                      ) : <span style={{ fontSize: 13, color: '#9ca3af', fontStyle: 'italic' }}>None</span>}
+                      <label style={labelStyle}>Content Type</label>
+                      <span style={{ fontSize: 13, color: task.type ? '#374151' : '#9ca3af', fontStyle: task.type ? 'normal' : 'italic' }}>
+                        {task.type || 'Not set'}
+                      </span>
                     </div>
 
                     {/* Internal deadline */}
@@ -496,7 +482,6 @@ export default function TaskDetailModal({
                   {!editing && !isLive && (
                     <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: 20 }}>
                       <label style={{ ...labelStyle, marginBottom: 12 }}>Move Task</label>
-
                       {isRejected ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 10, background: '#fef2f2', border: '1px solid #fecaca' }}>
@@ -632,7 +617,7 @@ export default function TaskDetailModal({
               <div style={{ padding: '24px' }}>
                 <p style={{ fontSize: 15, fontWeight: 600, color: '#111827', margin: '0 0 8px 0' }}>Delete Task?</p>
                 <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 20px 0', lineHeight: 1.5 }}>
-                  Permanently delete <strong>"{task.title}"</strong>? This cannot be undone.
+                  Permanently delete <strong>&quot;{task.title}&quot;</strong>? This cannot be undone.
                 </p>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
                   <button onClick={() => setDeleteConfirm(false)} style={cancelBtnStyle}>Cancel</button>
@@ -684,7 +669,6 @@ const backdropStyle = {
   justifyContent:  'center',
   padding:         '16px',
 };
-
 const modalBoxStyle = {
   background:    '#ffffff',
   borderRadius:  '16px',
@@ -695,7 +679,6 @@ const modalBoxStyle = {
   flexDirection: 'column',
   overflow:      'hidden',
 };
-
 const modalHeaderStyle = {
   display:        'flex',
   alignItems:     'center',
@@ -704,7 +687,6 @@ const modalHeaderStyle = {
   borderBottom:   '1px solid #f3f4f6',
   flexShrink:     0,
 };
-
 const modalFooterStyle = {
   display:        'flex',
   justifyContent: 'flex-end',
@@ -713,7 +695,6 @@ const modalFooterStyle = {
   borderTop:      '1px solid #f3f4f6',
   flexShrink:     0,
 };
-
 const iconBtnStyle = {
   padding:        '6px',
   borderRadius:   '8px',
@@ -726,7 +707,6 @@ const iconBtnStyle = {
   justifyContent: 'center',
   transition:     'all 0.15s ease',
 };
-
 const labelStyle = {
   display:      'block',
   fontSize:     '11px',
@@ -737,7 +717,6 @@ const labelStyle = {
   letterSpacing:'0.05em',
   fontFamily:   'inherit',
 };
-
 const inputStyle = {
   width:        '100%',
   background:   '#ffffff',
@@ -750,7 +729,6 @@ const inputStyle = {
   boxSizing:    'border-box',
   outline:      'none',
 };
-
 const cancelBtnStyle = {
   padding:      '8px 16px',
   fontSize:     '13px',
@@ -762,7 +740,6 @@ const cancelBtnStyle = {
   cursor:       'pointer',
   fontFamily:   'inherit',
 };
-
 const submitBtnStyle = {
   display:      'inline-flex',
   alignItems:   'center',
