@@ -1,6 +1,5 @@
 // src/components/brands/CreateBrandModal.jsx
 'use client'
-
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Plus, Trash2, ChevronRight, ChevronLeft, Check, Sparkles } from 'lucide-react'
@@ -82,6 +81,7 @@ function Step1({ form, setForm }) {
           onBlur={(e)  => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none' }}
         />
       </div>
+
       <div>
         <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Brand Color</label>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -92,6 +92,7 @@ function Step1({ form, setForm }) {
           ))}
         </div>
       </div>
+
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', background: '#f9fafb', borderRadius: 10, border: '1px solid #e5e7eb' }}>
         <div style={{ width: 40, height: 40, borderRadius: 10, background: form.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 16, flexShrink: 0 }}>
           {form.name ? form.name[0].toUpperCase() : '?'}
@@ -106,7 +107,7 @@ function Step1({ form, setForm }) {
 }
 
 function Step2({ sowItems, setSowItems }) {
-  const [customType, setCustomType]         = useState('')
+  const [customType, setCustomType]           = useState('')
   const [showCustomInput, setShowCustomInput] = useState(false)
 
   function addType(type) {
@@ -118,7 +119,6 @@ function Step2({ sowItems, setSowItems }) {
   }
   function removeItem(type) { setSowItems((prev) => prev.filter((i) => i.type !== type)) }
   function updateTarget(type, val) {
-    // Allow decimals — clamp >= 0
     let num = parseFloat(val)
     if (isNaN(num) || num < 0) num = 0
     setSowItems((prev) => prev.map((i) => i.type === type ? { ...i, target: num } : i))
@@ -276,10 +276,26 @@ function Step3({ selectedMembers, setSelectedMembers }) {
         onFocus={(e) => { e.target.style.borderColor = '#4f46e5'; e.target.style.boxShadow = '0 0 0 3px rgba(79,70,229,0.08)' }}
         onBlur={(e)  => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none' }}
       />
+
       {loading ? (
         <p style={{ textAlign: 'center', fontSize: 13, color: '#9ca3af', padding: 16 }}>Loading team...</p>
       ) : (
-        <div style={{ maxHeight: 260, overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: 10, overflow: 'hidden' }}>
+        // FIX: Previously had both `overflowY: 'auto'` AND `overflow: 'hidden'` on the
+        // same div — the shorthand `overflow: hidden` came after and clobbered the
+        // axis-specific rule, so the list got clipped and no scrollbar showed up.
+        // Now only `overflowY: 'auto'` is set, plus `overscrollBehavior: 'contain'`
+        // so the inner scroll doesn't chain into the page behind the modal.
+        <div
+          style={{
+            maxHeight: 320,
+            overflowY: 'auto',
+            overscrollBehavior: 'contain',
+            border: '1px solid #e5e7eb',
+            borderRadius: 10,
+            background: '#fff',
+            WebkitOverflowScrolling: 'touch',
+          }}
+        >
           {filtered.map((user, idx) => {
             const sel      = selectedMembers.includes(user._id)
             const initials = user.name?.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
@@ -303,6 +319,7 @@ function Step3({ selectedMembers, setSelectedMembers }) {
           {filtered.length === 0 && <p style={{ textAlign: 'center', fontSize: 13, color: '#9ca3af', padding: '24px 16px' }}>No members found</p>}
         </div>
       )}
+
       {selectedMembers.length > 0 && (
         <p style={{ fontSize: 12, color: '#4f46e5', fontWeight: 500, margin: 0 }}>
           {selectedMembers.length} member{selectedMembers.length !== 1 ? 's' : ''} selected

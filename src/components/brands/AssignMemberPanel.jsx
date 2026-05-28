@@ -1,20 +1,17 @@
 // src/components/brands/AssignMemberPanel.jsx
-
 'use client'
-
 import { useState, useEffect } from 'react'
 import RoleBadge from '@/components/shared/RoleBadge'
 
 export default function AssignMemberPanel({ brandId, members, onMembersChange }) {
-  const [allUsers, setAllUsers] = useState([])
-  const [search, setSearch] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [allUsers, setAllUsers]         = useState([])
+  const [search, setSearch]             = useState('')
   const [actionLoading, setActionLoading] = useState(null)
 
   useEffect(() => { fetchUsers() }, [])
 
   async function fetchUsers() {
-    const res = await fetch('/api/users')
+    const res  = await fetch('/api/users')
     const data = await res.json()
     if (res.ok) setAllUsers(data.users.filter((u) => u.isActive))
   }
@@ -51,7 +48,6 @@ export default function AssignMemberPanel({ brandId, members, onMembersChange })
   }
 
   const memberUserIds = members.map((m) => m.userId._id?.toString())
-
   const filtered = allUsers.filter(
     (u) =>
       u.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -76,23 +72,43 @@ export default function AssignMemberPanel({ brandId, members, onMembersChange })
           borderRadius: '8px',
           outline: 'none',
           marginBottom: '12px',
+          boxSizing: 'border-box',
         }}
         onFocus={(e) => {
-          e.target.style.border = '1px solid #4f46e5'
+          e.target.style.border    = '1px solid #4f46e5'
           e.target.style.boxShadow = '0 0 0 3px rgba(79,70,229,0.08)'
         }}
         onBlur={(e) => {
-          e.target.style.border = '1px solid #e5e7eb'
+          e.target.style.border    = '1px solid #e5e7eb'
           e.target.style.boxShadow = 'none'
         }}
       />
 
-      {/* User list */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '320px', overflowY: 'auto' }}>
+      {/* User list — scrollable region.
+          - maxHeight raised so short lists don't need to scroll at all
+          - overscrollBehavior: 'contain' prevents scroll-chaining into the page
+            (fixes the "scroll stuck" feeling when cursor enters this region)
+          - paddingRight reserves space for the scrollbar so rows don't shift */}
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '6px',
+          maxHeight: '420px',
+          overflowY: 'auto',
+          overscrollBehavior: 'contain',
+          paddingRight: '4px',
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
+        {filtered.length === 0 && (
+          <div style={{ padding: '14px', textAlign: 'center', fontSize: '12px', color: '#9ca3af' }}>
+            No users match your search.
+          </div>
+        )}
         {filtered.map((user) => {
           const isMember = memberUserIds.includes(user._id?.toString())
-          const busy = actionLoading === user._id
-
+          const busy     = actionLoading === user._id
           return (
             <div
               key={user._id}
@@ -104,6 +120,7 @@ export default function AssignMemberPanel({ brandId, members, onMembersChange })
                 borderRadius: '8px',
                 background: isMember ? '#f9fafb' : '#fff',
                 border: '1px solid #e5e7eb',
+                flexShrink: 0,
               }}
             >
               {/* Avatar */}
@@ -127,7 +144,16 @@ export default function AssignMemberPanel({ brandId, members, onMembersChange })
 
               {/* Info */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: '13px', fontWeight: '500', color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div
+                  style={{
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    color: '#111827',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   {user.name}
                 </div>
                 <div style={{ marginTop: '2px' }}>
@@ -137,7 +163,7 @@ export default function AssignMemberPanel({ brandId, members, onMembersChange })
 
               {/* Action */}
               <button
-                onClick={() => isMember ? remove(user._id) : assign(user._id)}
+                onClick={() => (isMember ? remove(user._id) : assign(user._id))}
                 disabled={busy}
                 style={{
                   padding: '4px 12px',
@@ -150,7 +176,7 @@ export default function AssignMemberPanel({ brandId, members, onMembersChange })
                   background: 'transparent',
                   transition: 'all 0.1s',
                   borderColor: isMember ? '#fca5a5' : '#c7d2fe',
-                  color: isMember ? '#b91c1c' : '#4f46e5',
+                  color:       isMember ? '#b91c1c' : '#4f46e5',
                 }}
               >
                 {busy ? '...' : isMember ? 'Remove' : 'Add'}

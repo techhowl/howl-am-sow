@@ -21,7 +21,6 @@ export async function GET(request, { params }) {
     const assignee = searchParams.get('assignee');
 
     const isAdminOrAM = ['admin', 'account_manager'].includes(session.user.role);
-
     const filter = { brandId };
     if (status)   filter.status    = status;
     if (priority) filter.priority  = priority;
@@ -57,11 +56,14 @@ export async function POST(request, { params }) {
 
     const { brandId } = await params;
     await connectDB();
-
     const body = await request.json();
+
+    // NOTE: `type` is now destructured from the body — previously omitted,
+    // which caused every task to silently fall back to the schema default 'Static'.
     const {
       title,
       description,
+      type,
       assignees        = [],
       priority         = 'medium',
       copyRequired     = true,
@@ -74,16 +76,21 @@ export async function POST(request, { params }) {
     if (!title?.trim()) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 });
     }
+    if (!type?.trim()) {
+      return NextResponse.json({ error: 'Content type is required' }, { status: 400 });
+    }
 
-    let initialStatus = 'internal_review';
+    // Initial status follows the new workflow order: copy → design → video → sent_to_client
+    let initialStatus = 'sent_to_client';
     if (copyRequired)        initialStatus = 'copy_wip';
-    else if (videoRequired)  initialStatus = 'video_wip';
     else if (designRequired) initialStatus = 'design_wip';
+    else if (videoRequired)  initialStatus = 'video_wip';
 
     const task = await Task.create({
       brandId,
       title:            title.trim(),
       description:      description?.trim() || '',
+      type:             type.trim(),
       assignees,
       priority,
       status:           initialStatus,
