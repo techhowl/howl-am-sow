@@ -20,7 +20,7 @@ export async function GET(request, { params }) {
     const priority = searchParams.get('priority');
     const assignee = searchParams.get('assignee');
 
-    const isAdminOrAM = ['admin', 'account_manager'].includes(session.user.role);
+    const isAdminOrAM = ['superadmin', 'admin', 'account_manager'].includes(session.user.role);
     const filter = { brandId };
     if (status)   filter.status    = status;
     if (priority) filter.priority  = priority;

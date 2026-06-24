@@ -55,8 +55,31 @@ export function getValidTransitions(currentStatus) {
   return VALID_TRANSITIONS[currentStatus] || []
 }
 
-export function getBackwardTransition(currentStatus) {
-  return BACKWARD_TRANSITIONS[currentStatus] || null
+// Which workflow stages a task actually goes through, based on its flags.
+// copy/design default ON (required unless explicitly false); video defaults OFF.
+export function getRequiredStages(task = {}) {
+  return {
+    copy_wip:       task.copyRequired   !== false,
+    design_wip:     task.designRequired !== false,
+    video_wip:      task.videoRequired === true,
+    sent_to_client: true,
+    approved:       true,
+    live:           true,
+  }
+}
+
+// Backward target = nearest *required* stage before the current one.
+// Task-aware: a no-video task at sent_to_client goes back to design_wip, not video_wip.
+// Falls back to the static map when no task flags are supplied.
+export function getBackwardTransition(currentStatus, task) {
+  if (!task) return BACKWARD_TRANSITIONS[currentStatus] || null
+  const idx = STATUS_ORDER.indexOf(currentStatus)
+  if (idx <= 0) return null
+  const required = getRequiredStages(task)
+  for (let i = idx - 1; i >= 0; i--) {
+    if (required[STATUS_ORDER[i]]) return STATUS_ORDER[i]
+  }
+  return null
 }
 
 export function isValidTransition(from, to) {

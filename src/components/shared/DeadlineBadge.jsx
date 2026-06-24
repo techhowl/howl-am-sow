@@ -12,11 +12,11 @@ export default function DeadlineBadge({ date, label, closed = false }) {
   const dueToday = !closed && isToday(d);
   const daysLeft = differenceInDays(d, new Date());
 
-  let className = 'bg-gray-100 text-gray-600 border border-gray-200';
-  if (closed) className = 'bg-gray-100 text-gray-400 border border-gray-200';
-  else if (overdue) className = 'bg-red-50 text-red-700 border border-red-200';
-  else if (dueToday) className = 'bg-amber-50 text-amber-700 border border-amber-200';
-  else if (daysLeft <= 2) className = 'bg-orange-50 text-orange-700 border border-orange-200';
+  let className = 'bg-success/10 text-success border border-success/30';
+  if (closed) className = 'bg-muted text-muted-foreground border border-border';
+  else if (overdue) className = 'bg-destructive/10 text-destructive border border-destructive/30';
+  else if (dueToday) className = 'bg-warning/10 text-warning border border-warning/30';
+  else if (daysLeft <= 2) className = 'bg-warning/10 text-warning border border-warning/30';
 
   return (
     <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium ${className}`}>

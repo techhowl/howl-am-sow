@@ -1,17 +1,25 @@
 // src/app/layout.js
 
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Space_Grotesk, Geist, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import SessionProvider from '@/components/providers/SessionProvider'
+import { ThemeProvider } from '@/components/providers/ThemeProvider'
+import { AuroraBackdrop } from '@/components/shared/AuroraBackdrop'
 import { auth } from '@/lib/auth/auth'
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+const display = Space_Grotesk({
+  variable: '--font-space-grotesk',
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+})
+
+const sans = Geist({
+  variable: '--font-geist',
   subsets: ['latin'],
 })
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
+const mono = JetBrains_Mono({
+  variable: '--font-jetbrains',
   subsets: ['latin'],
 })
 
@@ -24,11 +32,12 @@ export default async function RootLayout({ children }) {
   const session = await auth()
 
   return (
-    <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <SessionProvider session={session}>
-          {children}
-        </SessionProvider>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${display.variable} ${sans.variable} ${mono.variable} antialiased`}>
+        <ThemeProvider>
+          <AuroraBackdrop />
+          <SessionProvider session={session}>{children}</SessionProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

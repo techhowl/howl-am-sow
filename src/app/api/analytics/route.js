@@ -26,7 +26,7 @@ export async function GET(req) {
   try {
     const session = await auth();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    if (!['admin', 'account_manager'].includes(session.user.role)) {
+    if (!['superadmin', 'admin', 'account_manager'].includes(session.user.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     await connectDB();

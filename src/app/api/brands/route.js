@@ -17,7 +17,7 @@ export async function GET() {
     await connectDB()
 
     let brands
-    if (['admin', 'account_manager'].includes(session.user.role)) {
+    if (['superadmin', 'admin', 'account_manager'].includes(session.user.role)) {
       brands = await Brand.find({ isActive: true })
         .sort({ createdAt: -1 })
         .populate('createdBy', 'name email')

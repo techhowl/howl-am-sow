@@ -66,20 +66,20 @@ export default function AssignMemberPanel({ brandId, members, onMembersChange })
           width: '100%',
           padding: '8px 12px',
           fontSize: '13px',
-          color: '#111827',
-          background: '#fff',
-          border: '1px solid #e5e7eb',
+          color: 'var(--foreground)',
+          background: 'var(--card)',
+          border: '1px solid var(--border)',
           borderRadius: '8px',
           outline: 'none',
           marginBottom: '12px',
           boxSizing: 'border-box',
         }}
         onFocus={(e) => {
-          e.target.style.border    = '1px solid #4f46e5'
-          e.target.style.boxShadow = '0 0 0 3px rgba(79,70,229,0.08)'
+          e.target.style.border    = '1px solid var(--ring)'
+          e.target.style.boxShadow = '0 0 0 3px color-mix(in oklab, var(--ring) 8%, transparent)'
         }}
         onBlur={(e) => {
-          e.target.style.border    = '1px solid #e5e7eb'
+          e.target.style.border    = '1px solid var(--border)'
           e.target.style.boxShadow = 'none'
         }}
       />
@@ -102,7 +102,7 @@ export default function AssignMemberPanel({ brandId, members, onMembersChange })
         }}
       >
         {filtered.length === 0 && (
-          <div style={{ padding: '14px', textAlign: 'center', fontSize: '12px', color: '#9ca3af' }}>
+          <div style={{ padding: '14px', textAlign: 'center', fontSize: '12px', color: 'var(--muted-foreground)' }}>
             No users match your search.
           </div>
         )}
@@ -118,8 +118,8 @@ export default function AssignMemberPanel({ brandId, members, onMembersChange })
                 gap: '10px',
                 padding: '10px 12px',
                 borderRadius: '8px',
-                background: isMember ? '#f9fafb' : '#fff',
-                border: '1px solid #e5e7eb',
+                background: isMember ? 'var(--muted)' : 'var(--card)',
+                border: '1px solid var(--border)',
                 flexShrink: 0,
               }}
             >
@@ -129,8 +129,8 @@ export default function AssignMemberPanel({ brandId, members, onMembersChange })
                   width: '30px',
                   height: '30px',
                   borderRadius: '6px',
-                  background: '#4f46e5',
-                  color: '#fff',
+                  background: 'var(--primary)',
+                  color: 'var(--primary-foreground)',
                   fontSize: '12px',
                   fontWeight: '600',
                   display: 'flex',
@@ -148,7 +148,7 @@ export default function AssignMemberPanel({ brandId, members, onMembersChange })
                   style={{
                     fontSize: '13px',
                     fontWeight: '500',
-                    color: '#111827',
+                    color: 'var(--foreground)',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
@@ -175,8 +175,8 @@ export default function AssignMemberPanel({ brandId, members, onMembersChange })
                   flexShrink: 0,
                   background: 'transparent',
                   transition: 'all 0.1s',
-                  borderColor: isMember ? '#fca5a5' : '#c7d2fe',
-                  color:       isMember ? '#b91c1c' : '#4f46e5',
+                  borderColor: isMember ? 'color-mix(in oklab, var(--destructive) 30%, transparent)' : 'color-mix(in oklab, var(--primary) 40%, transparent)',
+                  color:       isMember ? 'var(--destructive)' : 'var(--primary)',
                 }}
               >
                 {busy ? '...' : isMember ? 'Remove' : 'Add'}

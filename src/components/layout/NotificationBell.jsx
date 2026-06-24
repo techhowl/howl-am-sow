@@ -8,14 +8,14 @@ import { formatDistanceToNow } from 'date-fns'
 import { createPortal } from 'react-dom'
 
 const TYPE_COLORS = {
-  task_assigned:  'bg-indigo-100 text-indigo-700',
-  status_changed: 'bg-blue-100 text-blue-700',
-  task_rejected:  'bg-red-100 text-red-700',
-  task_approved:  'bg-green-100 text-green-700',
-  task_live:      'bg-emerald-100 text-emerald-700',
-  mentioned:      'bg-purple-100 text-purple-700',
-  comment_added:  'bg-gray-100 text-gray-600',
-  brand_added:    'bg-amber-100 text-amber-700',
+  task_assigned:  'bg-[var(--color-chart-4)]/10 text-[var(--color-chart-4)]',
+  status_changed: 'bg-[var(--color-chart-2)]/10 text-[var(--color-chart-2)]',
+  task_rejected:  'bg-destructive/10 text-destructive',
+  task_approved:  'bg-success/10 text-success',
+  task_live:      'bg-success/10 text-success',
+  mentioned:      'bg-[var(--color-chart-5)]/10 text-[var(--color-chart-5)]',
+  comment_added:  'bg-muted text-muted-foreground',
+  brand_added:    'bg-warning/10 text-warning',
 }
 
 function NotifItem({ n, onRead, onNavigate }) {
@@ -31,21 +31,21 @@ function NotifItem({ n, onRead, onNavigate }) {
   return (
     <div
       onClick={handleClick}
-      className={`flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors border-b border-gray-100 last:border-0 ${
-        unread ? 'bg-indigo-50/60 hover:bg-indigo-50' : 'hover:bg-gray-50'
+      className={`flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors border-b border-border last:border-0 ${
+        unread ? 'bg-primary/10 hover:bg-primary/15' : 'hover:bg-muted'
       }`}
     >
       <div className="shrink-0 mt-2">
-        <div className={`w-1.5 h-1.5 rounded-full ${unread ? 'bg-indigo-500' : 'bg-transparent'}`} />
+        <div className={`w-1.5 h-1.5 rounded-full ${unread ? 'bg-primary' : 'bg-transparent'}`} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-xs text-gray-700 leading-snug">{n.message}</p>
-        <p className="text-[10px] text-gray-400 mt-1">
+        <p className="text-xs text-foreground leading-snug">{n.message}</p>
+        <p className="text-[10px] text-muted-foreground mt-1">
           {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
         </p>
       </div>
       {n.type && (
-        <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 mt-0.5 ${TYPE_COLORS[n.type] || 'bg-gray-100 text-gray-500'}`}>
+        <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 mt-0.5 ${TYPE_COLORS[n.type] || 'bg-muted text-muted-foreground'}`}>
           {n.type.replace(/_/g, ' ')}
         </span>
       )}
@@ -138,19 +138,19 @@ export default function NotificationBell() {
         left:        dropdownPos.left,
         width:       '320px',
         zIndex:      999999,
-        background:  '#ffffff',
-        border:      '1px solid #e5e7eb',
+        background:  'var(--popover)',
+        border:      '1px solid var(--border)',
         borderRadius:'16px',
         boxShadow:   '0 16px 48px rgba(0,0,0,0.14)',
         overflow:    'hidden',
       }}
     >
       {/* Header */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', borderBottom:'1px solid #f3f4f6' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', borderBottom:'1px solid var(--border)' }}>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <span style={{ fontSize:13, fontWeight:600, color:'#111827' }}>Notifications</span>
+          <span style={{ fontSize:13, fontWeight:600, color:'var(--popover-foreground)' }}>Notifications</span>
           {unreadCount > 0 && (
-            <span style={{ fontSize:10, fontWeight:700, background:'#eef2ff', color:'#4f46e5', borderRadius:99, padding:'2px 7px' }}>
+            <span style={{ fontSize:10, fontWeight:700, background:'color-mix(in oklab, var(--primary) 12%, transparent)', color:'var(--primary)', borderRadius:99, padding:'2px 7px' }}>
               {unreadCount} new
             </span>
           )}
@@ -160,18 +160,18 @@ export default function NotificationBell() {
             <button
               onClick={markAll}
               title="Mark all read"
-              style={{ padding:6, borderRadius:8, border:'none', background:'transparent', cursor:'pointer', color:'#9ca3af', display:'flex' }}
-              onMouseEnter={(e) => { e.currentTarget.style.background='#eef2ff'; e.currentTarget.style.color='#4f46e5' }}
-              onMouseLeave={(e) => { e.currentTarget.style.background='transparent'; e.currentTarget.style.color='#9ca3af' }}
+              style={{ padding:6, borderRadius:8, border:'none', background:'transparent', cursor:'pointer', color:'var(--muted-foreground)', display:'flex' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background='color-mix(in oklab, var(--primary) 12%, transparent)'; e.currentTarget.style.color='var(--primary)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background='transparent'; e.currentTarget.style.color='var(--muted-foreground)' }}
             >
               <CheckCheck size={14} />
             </button>
           )}
           <button
             onClick={() => setOpen(false)}
-            style={{ padding:6, borderRadius:8, border:'none', background:'transparent', cursor:'pointer', color:'#9ca3af', display:'flex' }}
-            onMouseEnter={(e) => { e.currentTarget.style.background='#f3f4f6'; e.currentTarget.style.color='#374151' }}
-            onMouseLeave={(e) => { e.currentTarget.style.background='transparent'; e.currentTarget.style.color='#9ca3af' }}
+            style={{ padding:6, borderRadius:8, border:'none', background:'transparent', cursor:'pointer', color:'var(--muted-foreground)', display:'flex' }}
+            onMouseEnter={(e) => { e.currentTarget.style.background='var(--accent)'; e.currentTarget.style.color='var(--foreground)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.background='transparent'; e.currentTarget.style.color='var(--muted-foreground)' }}
           >
             <X size={14} />
           </button>
@@ -182,12 +182,12 @@ export default function NotificationBell() {
       <div style={{ maxHeight: 380, overflowY:'auto' }}>
         {loading ? (
           <div style={{ display:'flex', justifyContent:'center', padding:'32px 0' }}>
-            <div style={{ width:20, height:20, border:'2px solid #e5e7eb', borderTopColor:'#4f46e5', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
+            <div style={{ width:20, height:20, border:'2px solid var(--border)', borderTopColor:'var(--primary)', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
           </div>
         ) : notifications.length === 0 ? (
           <div style={{ textAlign:'center', padding:'40px 16px' }}>
-            <Bell size={28} color="#e5e7eb" style={{ margin:'0 auto 8px' }} />
-            <p style={{ fontSize:12, color:'#9ca3af' }}>No notifications yet</p>
+            <Bell size={28} color="var(--border)" style={{ margin:'0 auto 8px' }} />
+            <p style={{ fontSize:12, color:'var(--muted-foreground)' }}>No notifications yet</p>
           </div>
         ) : (
           notifications.map((n) => (
@@ -203,8 +203,8 @@ export default function NotificationBell() {
 
       {/* Footer */}
       {notifications.length > 0 && (
-        <div style={{ padding:'8px 16px', borderTop:'1px solid #f3f4f6', background:'#fafafa' }}>
-          <p style={{ fontSize:10, color:'#9ca3af', textAlign:'center' }}>
+        <div style={{ padding:'8px 16px', borderTop:'1px solid var(--border)', background:'var(--muted)' }}>
+          <p style={{ fontSize:10, color:'var(--muted-foreground)', textAlign:'center' }}>
             Last {notifications.length} · Refreshes every 30s
           </p>
         </div>
@@ -227,14 +227,14 @@ export default function NotificationBell() {
           border:     'none',
           background: 'transparent',
           cursor:     'pointer',
-          color:      '#6b7280',
+          color:      'color-mix(in oklab, var(--sidebar-foreground) 70%, transparent)',
           display:    'flex',
           alignItems: 'center',
           justifyContent: 'center',
           transition: 'all 0.15s ease',
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.background='rgba(255,255,255,0.1)'; e.currentTarget.style.color='#d1d5db' }}
-        onMouseLeave={(e) => { e.currentTarget.style.background='transparent'; e.currentTarget.style.color='#6b7280' }}
+        onMouseEnter={(e) => { e.currentTarget.style.background='var(--sidebar-accent)'; e.currentTarget.style.color='var(--sidebar-foreground)' }}
+        onMouseLeave={(e) => { e.currentTarget.style.background='transparent'; e.currentTarget.style.color='color-mix(in oklab, var(--sidebar-foreground) 70%, transparent)' }}
         title="Notifications"
       >
         <Bell size={16} />
@@ -245,8 +245,8 @@ export default function NotificationBell() {
             right:      -2,
             width:      16,
             height:     16,
-            background: '#ef4444',
-            color:      '#fff',
+            background: 'var(--destructive)',
+            color:      'var(--destructive-foreground)',
             fontSize:   9,
             fontWeight: 700,
             borderRadius: '50%',

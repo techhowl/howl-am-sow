@@ -5,8 +5,13 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { Building2 } from 'lucide-react'
 import { canManageBrands } from '@/lib/auth/permissions'
 import CreateBrandModal from '@/components/brands/CreateBrandModal'
+import { Skeleton } from '@/components/shared/Skeleton'
+import { PageHeader } from '@/components/shared/PageHeader'
+import { IconMedallion } from '@/components/shared/IconMedallion'
+import { MotionList, MotionItem } from '@/components/shared/motion/MotionList'
 
 export default function BrandsPage() {
   const { data: session } = useSession()
@@ -35,38 +40,20 @@ export default function BrandsPage() {
   const canCreate = session && canManageBrands(session.user.role)
 
   return (
-    <div style={{ padding: '40px', maxWidth: '1000px' }}>
+    <div className="bg-background p-8 mx-auto w-full max-w-5xl">
 
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
-        <div>
-          <h1 style={{ fontSize: '20px', fontWeight: '600', color: '#111827', letterSpacing: '-0.01em' }}>
-            Brands
-          </h1>
-          <p style={{ fontSize: '13px', color: '#6b7280', marginTop: '4px' }}>
-            {brands.length} brand{brands.length !== 1 ? 's' : ''} · select one to manage
-          </p>
-        </div>
-        {canCreate && (
-          <button
-            onClick={() => setShowModal(true)}
-            style={{
-              padding: '8px 16px',
-              fontSize: '13px',
-              fontWeight: '500',
-              color: '#fff',
-              background: '#4f46e5',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = '#4338ca')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = '#4f46e5')}
-          >
-            New brand
-          </button>
-        )}
-      </div>
+      <PageHeader
+        eyebrow="WORKSPACE"
+        title="Brands"
+        lede={`${brands.length} brand${brands.length !== 1 ? 's' : ''} · select one to manage`}
+        actions={
+          canCreate ? (
+            <button onClick={() => setShowModal(true)} className="btn-primary">
+              New brand
+            </button>
+          ) : null
+        }
+      />
 
       {/* Search */}
       <input
@@ -74,154 +61,107 @@ export default function BrandsPage() {
         placeholder="Search brands..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        style={{
-          width: '240px',
-          padding: '8px 12px',
-          fontSize: '13px',
-          color: '#111827',
-          background: '#fff',
-          border: '1px solid #e5e7eb',
-          borderRadius: '8px',
-          outline: 'none',
-          marginBottom: '20px',
-          display: 'block',
-        }}
-        onFocus={(e) => {
-          e.target.style.border = '1px solid #4f46e5'
-          e.target.style.boxShadow = '0 0 0 3px rgba(79,70,229,0.08)'
-        }}
-        onBlur={(e) => {
-          e.target.style.border = '1px solid #e5e7eb'
-          e.target.style.boxShadow = 'none'
-        }}
+        className="input mb-5 block w-60"
       />
 
       {/* Grid */}
       {loading ? (
-        <div style={{ padding: '48px', textAlign: 'center', fontSize: '13px', color: '#9ca3af' }}>
-          Loading brands...
+        <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(260px,1fr))]">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="surface-card editorial-rise p-5"
+              style={{ animationDelay: `${i * 60}ms` }}
+            >
+              {/* Brand icon + name */}
+              <div className="flex items-center gap-3 mb-4">
+                <Skeleton className="shrink-0 h-10 w-10 rounded-xl" />
+                <div className="flex-1 min-w-0">
+                  <Skeleton className="h-3.5 w-[70%]" />
+                  <Skeleton className="mt-2 h-3 w-1/2" />
+                </div>
+              </div>
+
+              {/* Stats row */}
+              <div className="flex gap-6 pt-3.5 border-t border-border">
+                <div>
+                  <Skeleton className="h-3.5 w-6" />
+                  <Skeleton className="mt-1.5 h-2.5 w-12" />
+                </div>
+                <div>
+                  <Skeleton className="h-3.5 w-10" />
+                  <Skeleton className="mt-1.5 h-2.5 w-10" />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div
-          style={{
-            padding: '64px',
-            textAlign: 'center',
-            background: '#fff',
-            border: '1px solid #e5e7eb',
-            borderRadius: '12px',
-          }}
-        >
-          <div style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '12px' }}>
-            {search ? 'No brands match your search.' : 'No brands yet.'}
-          </div>
+        <div className="surface-card flex flex-col items-center text-center p-16">
+          <span className="empty-art mb-4">
+            <Building2 aria-hidden="true" className="h-6 w-6" />
+          </span>
+          <p className="eyebrow mb-2">{search ? 'NO MATCHES' : 'NO BRANDS YET'}</p>
+          <p className="text-sm text-muted-foreground mb-4">
+            {search ? 'No brands match your search.' : 'Create a brand to get started.'}
+          </p>
           {canCreate && !search && (
-            <button
-              onClick={() => setShowModal(true)}
-              style={{
-                padding: '8px 16px',
-                fontSize: '13px',
-                fontWeight: '500',
-                color: '#4f46e5',
-                background: '#ede9fe',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-              }}
-            >
+            <button onClick={() => setShowModal(true)} className="btn-primary">
               Create your first brand
             </button>
           )}
         </div>
       ) : (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-            gap: '16px',
-          }}
-        >
+        <MotionList className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(260px,1fr))]">
           {filtered.map((brand) => (
-            <div
+            <MotionItem
               key={brand._id}
               onClick={() => router.push(`/brands/${brand._id}`)}
-              style={{
-                background: '#fff',
-                border: '1px solid #e5e7eb',
-                borderRadius: '12px',
-                padding: '20px',
-                cursor: 'pointer',
-                transition: 'all 0.1s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#c7d2fe'
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(79,70,229,0.08)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#e5e7eb'
-                e.currentTarget.style.boxShadow = 'none'
-              }}
+              className="surface-card surface-card-hover p-5 cursor-pointer"
             >
               {/* Brand icon + name */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                <div
-                  style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '10px',
-                    background: brand.color || '#4f46e5',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#fff',
-                    fontWeight: '700',
-                    fontSize: '16px',
-                    flexShrink: 0,
-                  }}
+              <div className="flex items-center gap-3 mb-4">
+                <span
+                  className="inline-flex items-center justify-center h-10 w-10 rounded-xl text-white font-bold text-base shrink-0"
+                  style={{ background: brand.color || '#4f46e5' }}
                 >
                   {brand.name.charAt(0).toUpperCase()}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-foreground truncate">
                     {brand.name}
                   </div>
-                  <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>
+                  <div className="text-xs text-muted-foreground mt-0.5">
                     Created by {brand.createdBy?.name || '—'}
                   </div>
                 </div>
               </div>
 
               {/* Stats row */}
-              <div
-                style={{
-                  display: 'flex',
-                  gap: '16px',
-                  paddingTop: '14px',
-                  borderTop: '1px solid #f3f4f6',
-                }}
-              >
+              <div className="flex gap-4 pt-3.5 border-t border-border">
                 <div>
-                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>
+                  <div className="text-sm font-semibold text-foreground">
                     {brand.memberCount}
                   </div>
-                  <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '1px' }}>
+                  <div className="text-[11px] text-muted-foreground mt-px">
                     members
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>
+                  <div className="text-sm font-semibold text-foreground">
                     {new Date(brand.createdAt).toLocaleDateString('en-IN', {
                       day: 'numeric',
                       month: 'short',
                     })}
                   </div>
-                  <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '1px' }}>
+                  <div className="text-[11px] text-muted-foreground mt-px">
                     created
                   </div>
                 </div>
               </div>
-            </div>
+            </MotionItem>
           ))}
-        </div>
+        </MotionList>
       )}
 
       {showModal && (

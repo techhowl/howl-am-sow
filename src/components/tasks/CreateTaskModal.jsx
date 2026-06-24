@@ -109,13 +109,13 @@ export default function CreateTaskModal({ brandId, brandMembers = [], onClose, o
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: 16 }}
     >
       <div onClick={(e) => e.stopPropagation()}
-        style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, boxShadow: '0 25px 80px rgba(0,0,0,0.15)', width: '100%', maxWidth: 520, maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+        style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, boxShadow: '0 25px 80px rgba(0,0,0,0.15)', width: '100%', maxWidth: 520, maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
       >
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid #f3f4f6', flexShrink: 0 }}>
-          <h2 style={{ fontSize: 15, fontWeight: 600, color: '#111827', margin: 0 }}>Create Task</h2>
-          <button onClick={onClose} style={{ padding: 6, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: '#9ca3af', display: 'flex' }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = '#f3f4f6' }}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+          <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--foreground)', margin: 0 }}>Create Task</h2>
+          <button onClick={onClose} style={{ padding: 6, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--muted-foreground)', display: 'flex' }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--muted)' }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
           ><X size={16} /></button>
         </div>
@@ -127,8 +127,8 @@ export default function CreateTaskModal({ brandId, brandMembers = [], onClose, o
               <label style={lbl}>Title *</label>
               <input type="text" value={form.title} onChange={(e) => set('title', e.target.value)}
                 placeholder="e.g. Summer Campaign Video" style={inp}
-                onFocus={(e) => { e.target.style.borderColor = '#6366f1'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)' }}
-                onBlur={(e)  => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none' }}
+                onFocus={(e) => { e.target.style.borderColor = 'var(--ring)'; e.target.style.boxShadow = '0 0 0 3px color-mix(in oklch, var(--ring) 30%, transparent)' }}
+                onBlur={(e)  => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none' }}
               />
             </div>
 
@@ -154,8 +154,8 @@ export default function CreateTaskModal({ brandId, brandMembers = [], onClose, o
               <label style={lbl}>Description</label>
               <textarea value={form.description} onChange={(e) => set('description', e.target.value)}
                 rows={2} placeholder="Brief task description..." style={{ ...inp, resize: 'none', fontFamily: 'inherit' }}
-                onFocus={(e) => { e.target.style.borderColor = '#6366f1'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)' }}
-                onBlur={(e)  => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none' }}
+                onFocus={(e) => { e.target.style.borderColor = 'var(--ring)'; e.target.style.boxShadow = '0 0 0 3px color-mix(in oklch, var(--ring) 30%, transparent)' }}
+                onBlur={(e)  => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none' }}
               />
             </div>
 
@@ -166,21 +166,21 @@ export default function CreateTaskModal({ brandId, brandMembers = [], onClose, o
                 {WORKFLOW_FLAGS.map(({ key, label }) => {
                   const isActive = form[key];
                   const colors = {
-                    copyRequired:   { bg: '#faf5ff', border: '#c4b5fd', text: '#6d28d9' },
-                    designRequired: { bg: '#eff6ff', border: '#93c5fd', text: '#1d4ed8' },
-                    videoRequired:  { bg: '#f5f3ff', border: '#a78bfa', text: '#7c3aed' },
+                    copyRequired:   { bg: 'color-mix(in oklch, var(--chart-4) 12%, transparent)', border: 'color-mix(in oklch, var(--chart-4) 40%, transparent)', text: 'var(--chart-4)' },
+                    designRequired: { bg: 'color-mix(in oklch, var(--chart-2) 12%, transparent)', border: 'color-mix(in oklch, var(--chart-2) 40%, transparent)', text: 'var(--chart-2)' },
+                    videoRequired:  { bg: 'color-mix(in oklch, var(--chart-5) 12%, transparent)', border: 'color-mix(in oklch, var(--chart-5) 40%, transparent)', text: 'var(--chart-5)' },
                   }[key];
                   return (
                     <button key={key} type="button" onClick={() => set(key, !isActive)}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s ease', border: `1px solid ${isActive ? colors.border : '#e5e7eb'}`, background: isActive ? colors.bg : '#fff', color: isActive ? colors.text : '#9ca3af' }}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s ease', border: `1px solid ${isActive ? colors.border : 'var(--border)'}`, background: isActive ? colors.bg : 'var(--card)', color: isActive ? colors.text : 'var(--muted-foreground)' }}
                     >
                       {isActive && <Check size={13} />}{label}
                     </button>
                   );
                 })}
               </div>
-              <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 6 }}>
-                Task starts at: <span style={{ fontWeight: 600, color: '#6b7280' }}>{getInitialStatus()}</span>
+              <p style={{ fontSize: 11, color: 'var(--muted-foreground)', marginTop: 6 }}>
+                Task starts at: <span style={{ fontWeight: 600, color: 'var(--foreground)' }}>{getInitialStatus()}</span>
               </p>
             </div>
 
@@ -208,9 +208,9 @@ export default function CreateTaskModal({ brandId, brandMembers = [], onClose, o
                     const selected = form.assignees.includes(id);
                     return (
                       <button key={id} type="button" onClick={() => toggleAssignee(id)}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s ease', border: `1px solid ${selected ? '#a5b4fc' : '#e5e7eb'}`, background: selected ? '#eef2ff' : '#fff', color: selected ? '#4338ca' : '#374151' }}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s ease', border: `1px solid ${selected ? 'color-mix(in oklch, var(--primary) 40%, transparent)' : 'var(--border)'}`, background: selected ? 'color-mix(in oklch, var(--primary) 10%, transparent)' : 'var(--card)', color: selected ? 'var(--primary)' : 'var(--foreground)' }}
                       >
-                        <span style={{ width: 24, height: 24, borderRadius: '50%', background: selected ? '#4f46e5' : '#f3f4f6', color: selected ? '#fff' : '#6b7280', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <span style={{ width: 24, height: 24, borderRadius: '50%', background: selected ? 'var(--primary)' : 'var(--muted)', color: selected ? 'var(--primary-foreground)' : 'var(--muted-foreground)', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           {initials}
                         </span>
                         {name}
@@ -222,23 +222,23 @@ export default function CreateTaskModal({ brandId, brandMembers = [], onClose, o
             )}
 
             {error && (
-              <p style={{ fontSize: 13, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 14px', margin: 0 }}>
+              <p style={{ fontSize: 13, color: 'var(--destructive)', background: 'color-mix(in oklch, var(--destructive) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--destructive) 30%, transparent)', borderRadius: 8, padding: '10px 14px', margin: 0 }}>
                 {error}
               </p>
             )}
           </div>
 
           {/* Footer */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '14px 24px', borderTop: '1px solid #f3f4f6', flexShrink: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '14px 24px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
             <button type="button" onClick={onClose}
-              style={{ padding: '8px 16px', fontSize: 13, fontWeight: 500, color: '#374151', background: '#f3f4f6', border: 'none', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = '#e5e7eb' }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = '#f3f4f6' }}
+              style={{ padding: '8px 16px', fontSize: 13, fontWeight: 500, color: 'var(--foreground)', background: 'var(--muted)', border: 'none', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--secondary)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--muted)' }}
             >Cancel</button>
             <button type="submit" disabled={loading}
-              style={{ padding: '8px 20px', fontSize: 13, fontWeight: 500, color: '#fff', background: loading ? '#a5b4fc' : '#4f46e5', border: 'none', borderRadius: 8, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: loading ? 0.7 : 1 }}
-              onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = '#4338ca' }}
-              onMouseLeave={(e) => { if (!loading) e.currentTarget.style.background = '#4f46e5' }}
+              style={{ padding: '8px 20px', fontSize: 13, fontWeight: 500, color: 'var(--primary-foreground)', background: 'var(--primary)', border: 'none', borderRadius: 8, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: loading ? 0.7 : 1 }}
+              onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = 'color-mix(in oklch, var(--primary) 90%, black)' }}
+              onMouseLeave={(e) => { if (!loading) e.currentTarget.style.background = 'var(--primary)' }}
             >{loading ? 'Creating...' : 'Create Task'}</button>
           </div>
         </form>
@@ -248,5 +248,5 @@ export default function CreateTaskModal({ brandId, brandMembers = [], onClose, o
   );
 }
 
-const lbl = { display: 'block', fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, fontFamily: 'inherit' };
-const inp = { width: '100%', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, color: '#111827', fontSize: 13, padding: '8px 12px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' };
+const lbl = { display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, fontFamily: 'inherit' };
+const inp = { width: '100%', background: 'var(--input)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--foreground)', fontSize: 13, padding: '8px 12px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' };

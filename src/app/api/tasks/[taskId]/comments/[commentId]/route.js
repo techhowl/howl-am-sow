@@ -16,7 +16,7 @@ export async function DELETE(req, { params }) {
 
     // Only author or admin can delete
     const isAuthor = comment.authorId.toString() === session.user.id;
-    const isAdmin = session.user.role === 'admin';
+    const isAdmin = ['superadmin', 'admin'].includes(session.user.role);
     if (!isAuthor && !isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }

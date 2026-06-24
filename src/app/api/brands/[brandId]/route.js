@@ -25,7 +25,7 @@ export async function GET(req, { params }) {
     }
 
     // Check access — AM and admin see all, others must be a member
-    if (!['admin', 'account_manager'].includes(session.user.role)) {
+    if (!['superadmin', 'admin', 'account_manager'].includes(session.user.role)) {
       const member = await BrandMember.findOne({
         brandId,
         userId: session.user.id,
@@ -89,7 +89,7 @@ export async function DELETE(req, { params }) {
     const session = await auth()
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    if (session.user.role !== 'admin') {
+    if (!['superadmin', 'admin'].includes(session.user.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

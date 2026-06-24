@@ -3,6 +3,9 @@
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import SignupModal from '@/components/auth/SignupModal'
+import { Logo } from '@/components/shared/Logo'
+import { Field } from '@/components/shared/Field'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -11,6 +14,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showSignup, setShowSignup] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -36,222 +40,68 @@ export default function LoginPage() {
   }
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: '#f9fafb',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '24px',
-      }}
-    >
-      <div style={{ width: '100%', maxWidth: '400px' }}>
+    <div className="min-h-screen bg-background flex items-center justify-center p-6">
+      <div className="w-full max-w-sm">
 
-        {/* Wordmark */}
-        <div style={{ marginBottom: '32px' }}>
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '10px',
-              marginBottom: '24px',
-            }}
-          >
-            <div
-              style={{
-                width: '32px',
-                height: '32px',
-                background: '#4f46e5',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#fff',
-                fontWeight: '700',
-                fontSize: '15px',
-              }}
-            >
-              H
-            </div>
-            <span
-              style={{
-                fontSize: '16px',
-                fontWeight: '600',
-                color: '#111827',
-                letterSpacing: '-0.01em',
-              }}
-            >
-              Howl
-            </span>
+        {/* Masthead */}
+        <div className="mb-8 space-y-4">
+          <Logo variant="full" size={36} />
+          <div className="space-y-1.5">
+            <p className="eyebrow">SOW TRACKER</p>
+            <h1 className="editorial-h1">Welcome back</h1>
+            <p className="editorial-lede">Sign in to your account to continue.</p>
           </div>
-          <h1
-            style={{
-              fontSize: '22px',
-              fontWeight: '600',
-              color: '#111827',
-              letterSpacing: '-0.02em',
-              marginBottom: '6px',
-            }}
-          >
-            Sign in to your account
-          </h1>
-          <p style={{ fontSize: '14px', color: '#6b7280' }}>
-            SOW Tracker — internal tool
-          </p>
         </div>
 
         {/* Card */}
-        <div
-          style={{
-            background: '#ffffff',
-            border: '1px solid #e5e7eb',
-            borderRadius: '16px',
-            padding: '28px',
-          }}
-        >
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+        <div className="surface-card p-6 md:p-8">
+          <form onSubmit={handleSubmit} className="space-y-4">
 
-            {/* Email */}
-            <div>
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: '13px',
-                  fontWeight: '500',
-                  color: '#374151',
-                  marginBottom: '6px',
-                }}
-              >
-                Email
-              </label>
-              <input
-                type="email"
+            <Field
+              label="Email"
+              id="email"
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="afzal@howl.in"
+            />
+
+            {/* Password with show/hide toggle */}
+            <div className="relative">
+              <Field
+                label="Password"
+                id="password"
+                type={showPassword ? 'text' : 'password'}
                 required
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="afzal@howl.in"
-                style={{
-                  width: '100%',
-                  padding: '9px 12px',
-                  fontSize: '14px',
-                  color: '#111827',
-                  background: '#fff',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  outline: 'none',
-                }}
-                onFocus={(e) => {
-                  e.target.style.border = '1px solid #4f46e5'
-                  e.target.style.boxShadow = '0 0 0 3px rgba(79,70,229,0.1)'
-                }}
-                onBlur={(e) => {
-                  e.target.style.border = '1px solid #d1d5db'
-                  e.target.style.boxShadow = 'none'
-                }}
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="[&_.input]:pr-16"
               />
-            </div>
-
-            {/* Password */}
-            <div>
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: '13px',
-                  fontWeight: '500',
-                  color: '#374151',
-                  marginBottom: '6px',
-                }}
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 bottom-2.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
-                Password
-              </label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  style={{
-                    width: '100%',
-                    padding: '9px 44px 9px 12px',
-                    fontSize: '14px',
-                    color: '#111827',
-                    background: '#fff',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    outline: 'none',
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.border = '1px solid #4f46e5'
-                    e.target.style.boxShadow = '0 0 0 3px rgba(79,70,229,0.1)'
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.border = '1px solid #d1d5db'
-                    e.target.style.boxShadow = 'none'
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    fontSize: '12px',
-                    color: '#9ca3af',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: '0',
-                  }}
-                >
-                  {showPassword ? 'Hide' : 'Show'}
-                </button>
-              </div>
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
             </div>
 
             {/* Error */}
             {error && (
-              <div
-                style={{
-                  fontSize: '13px',
-                  color: '#b91c1c',
-                  background: '#fef2f2',
-                  border: '1px solid #fecaca',
-                  borderRadius: '8px',
-                  padding: '10px 14px',
-                }}
-              >
+              <div className="bg-destructive/10 text-destructive border border-destructive/30 rounded-lg px-3 py-2 text-sm">
                 {error}
               </div>
             )}
 
-            {/* Button */}
+            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
-              style={{
-                width: '100%',
-                padding: '10px',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#fff',
-                background: loading ? '#818cf8' : '#4f46e5',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                transition: 'background 0.15s',
-              }}
-              onMouseEnter={(e) => {
-                if (!loading) e.target.style.background = '#4338ca'
-              }}
-              onMouseLeave={(e) => {
-                if (!loading) e.target.style.background = '#4f46e5'
-              }}
+              className="btn-primary w-full justify-center"
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
@@ -259,17 +109,19 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <p
-          style={{
-            textAlign: 'center',
-            fontSize: '12px',
-            color: '#9ca3af',
-            marginTop: '20px',
-          }}
-        >
-          No access? Contact your admin.
+        <p className="text-center text-sm text-muted-foreground mt-5">
+          Don&apos;t have an account?{' '}
+          <button
+            type="button"
+            onClick={() => setShowSignup(true)}
+            className="text-primary font-medium hover:underline"
+          >
+            Create one
+          </button>
         </p>
       </div>
+
+      {showSignup && <SignupModal onClose={() => setShowSignup(false)} />}
     </div>
   )
 }

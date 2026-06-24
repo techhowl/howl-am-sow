@@ -4,18 +4,18 @@
 const PRIORITY_CONFIG = {
   high: {
     label: 'High',
-    className: 'bg-red-50 text-red-700 border border-red-200',
-    dot: 'bg-red-500',
+    className: 'bg-destructive/10 text-destructive border border-destructive/30',
+    dot: 'bg-destructive',
   },
   medium: {
     label: 'Medium',
-    className: 'bg-amber-50 text-amber-700 border border-amber-200',
-    dot: 'bg-amber-500',
+    className: 'bg-warning/10 text-warning border border-warning/30',
+    dot: 'bg-warning',
   },
   low: {
     label: 'Low',
-    className: 'bg-gray-100 text-gray-600 border border-gray-200',
-    dot: 'bg-gray-400',
+    className: 'bg-success/10 text-success border border-success/30',
+    dot: 'bg-success',
   },
 };
 

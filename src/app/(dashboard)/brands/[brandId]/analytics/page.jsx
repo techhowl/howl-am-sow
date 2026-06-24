@@ -7,6 +7,7 @@ import { format, addMonths, subMonths } from 'date-fns';
 import { BarChart2, ChevronLeft, ChevronRight, Download, ArrowLeft, Target, CheckCircle2, AlertTriangle, Settings } from 'lucide-react';
 import Link from 'next/link';
 import ScopeVarianceSection from '@/components/brands/ScopeVarianceSection';
+import { Skeleton, SkeletonStatCards, SkeletonTable } from '@/components/shared/Skeleton';
 
 function exportCSV(data, filename) {
   if (!data.length) return;
@@ -20,18 +21,18 @@ function exportCSV(data, filename) {
 }
 
 function getBarColor(percent, overDelivered) {
-  if (overDelivered) return 'bg-emerald-500';
-  if (percent === 100) return 'bg-emerald-500';
-  if (percent >= 70)   return 'bg-indigo-500';
-  if (percent >= 40)   return 'bg-amber-400';
-  return 'bg-red-400';
+  if (overDelivered) return 'bg-success';
+  if (percent === 100) return 'bg-success';
+  if (percent >= 70)   return 'bg-primary';
+  if (percent >= 40)   return 'bg-warning';
+  return 'bg-destructive';
 }
 
 function getTextColor(percent, overDelivered) {
-  if (overDelivered || percent === 100) return 'text-emerald-600';
-  if (percent >= 70)   return 'text-indigo-600';
-  if (percent >= 40)   return 'text-amber-600';
-  return 'text-red-500';
+  if (overDelivered || percent === 100) return 'text-success';
+  if (percent >= 70)   return 'text-primary';
+  if (percent >= 40)   return 'text-warning';
+  return 'text-destructive';
 }
 
 function SOWTypeRow({ item }) {
@@ -41,16 +42,16 @@ function SOWTypeRow({ item }) {
   const textColor = getTextColor(pct, item.overDelivered);
 
   return (
-    <div className="px-5 py-4 border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
+    <div className="px-5 py-4 border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
       <div className="flex items-center gap-4">
         <div className="w-36 shrink-0">
-          <p className="text-sm font-semibold text-gray-900">{item.type}</p>
+          <p className="text-sm font-semibold text-foreground">{item.type}</p>
           {!hasTarget && (
-            <p className="text-[10px] text-gray-400 mt-0.5">No SOW target</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">No SOW target</p>
           )}
         </div>
         <div className="flex-1">
-          <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+          <div className="w-full h-3 bg-muted rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all duration-700 ${barColor}`}
               style={{ width: `${Math.min(pct, 100)}%` }}
@@ -61,32 +62,32 @@ function SOWTypeRow({ item }) {
           {hasTarget ? (
             <div>
               <span className={`text-sm font-bold ${textColor}`}>{item.achieved}</span>
-              <span className="text-sm text-gray-400"> / {item.target}</span>
+              <span className="text-sm text-muted-foreground"> / {item.target}</span>
               <span className={`ml-2 text-xs font-semibold ${textColor}`}>{pct}%</span>
             </div>
           ) : (
             <div>
-              <span className="text-sm font-bold text-gray-700">{item.achieved}</span>
-              <span className="text-xs text-gray-400 ml-1">achieved</span>
+              <span className="text-sm font-bold text-foreground">{item.achieved}</span>
+              <span className="text-xs text-muted-foreground ml-1">achieved</span>
             </div>
           )}
           {item.overDelivered && item.surplus > 0 && (
-            <p className="text-[10px] text-emerald-600 font-medium mt-0.5">+{item.surplus} over target</p>
+            <p className="text-[10px] text-success font-medium mt-0.5">+{item.surplus} over target</p>
           )}
         </div>
         <div className="flex items-center gap-1.5 w-40 shrink-0 justify-end">
           {item.pending > 0 && (
-            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100">
+            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/40">
               {item.pending} in progress
             </span>
           )}
           {item.rejected > 0 && (
-            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-red-50 text-red-500 border border-red-100">
+            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/30">
               {item.rejected} rejected
             </span>
           )}
           {item.achieved > 0 && item.total === item.achieved && (
-            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+            <CheckCircle2 className="w-4 h-4 text-success" />
           )}
         </div>
       </div>
@@ -102,15 +103,25 @@ export default function BrandAnalyticsPage() {
   const [refDate, setRefDate] = useState(new Date());
   const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState('');
 
   useEffect(() => { fetchData(); }, [refDate, brandId]);
 
   async function fetchData() {
     setLoading(true);
+    setError('');
     try {
       const res  = await fetch(`/api/brands/${brandId}/analytics?date=${refDate.toISOString()}`);
-      const json = await res.json();
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        setData(null);
+        setError(json?.error || 'Failed to load analytics');
+        return;
+      }
       setData(json);
+    } catch {
+      setData(null);
+      setError('Failed to load analytics');
     } finally { setLoading(false); }
   }
 
@@ -118,34 +129,34 @@ export default function BrandAnalyticsPage() {
   const sow        = data?.sowSummary;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-200 px-6 pt-5 pb-4">
-        <button onClick={() => router.back()} className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 mb-4 transition-colors">
+    <div className="min-h-screen bg-background">
+      <div className="bg-card border-b border-border px-6 pt-5 pb-4">
+        <button onClick={() => router.back()} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-4 transition-colors">
           <ArrowLeft className="w-3.5 h-3.5" />Back
         </button>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <BarChart2 className="w-4 h-4 text-gray-400" />
-            <h1 className="text-lg font-semibold text-gray-900">Analytics</h1>
+            <BarChart2 className="w-4 h-4 text-muted-foreground" />
+            <h1 className="text-lg font-display text-foreground">Analytics</h1>
             {data?.brand && (
               <div className="flex items-center gap-1.5">
-                <span className="text-gray-300">·</span>
+                <span className="text-muted-foreground">·</span>
                 {data.brand.color && <span className="w-2 h-2 rounded-full" style={{ backgroundColor: data.brand.color }} />}
-                <span className="text-sm font-medium text-gray-600">{data.brand.name}</span>
+                <span className="text-sm font-medium text-muted-foreground">{data.brand.name}</span>
               </div>
             )}
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
-              <button onClick={() => setRefDate((d) => subMonths(d, 1))} className="p-2 hover:bg-gray-50 transition-colors border-r border-gray-200">
-                <ChevronLeft className="w-3.5 h-3.5 text-gray-500" />
+            <div className="flex items-center border border-border rounded-lg overflow-hidden">
+              <button onClick={() => setRefDate((d) => subMonths(d, 1))} className="p-2 hover:bg-muted transition-colors border-r border-border">
+                <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground" />
               </button>
-              <span className="text-xs font-semibold text-gray-700 px-4 min-w-[130px] text-center">{monthLabel}</span>
-              <button onClick={() => setRefDate((d) => addMonths(d, 1))} className="p-2 hover:bg-gray-50 transition-colors border-l border-gray-200">
-                <ChevronRight className="w-3.5 h-3.5 text-gray-500" />
+              <span className="text-xs font-semibold text-foreground px-4 min-w-[130px] text-center">{monthLabel}</span>
+              <button onClick={() => setRefDate((d) => addMonths(d, 1))} className="p-2 hover:bg-muted transition-colors border-l border-border">
+                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
               </button>
             </div>
-            <Link href={`/brands/${brandId}`} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-indigo-600 border border-gray-200 hover:border-indigo-300 px-3 py-2 rounded-lg transition-colors">
+            <Link href={`/brands/${brandId}`} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary border border-border hover:border-primary/40 px-3 py-2 rounded-lg transition-colors">
               <Settings className="w-3.5 h-3.5" />Edit SOW
             </Link>
           </div>
@@ -154,21 +165,55 @@ export default function BrandAnalyticsPage() {
 
       <div className="px-6 py-6 space-y-5 max-w-6xl">
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="w-6 h-6 border-2 border-gray-200 border-t-indigo-500 rounded-full animate-spin" />
+          <>
+            {/* SOW Progress card: header + progress bar + 4 stat cards */}
+            <div className="rounded-2xl border border-border bg-card p-5">
+              <div className="flex items-center gap-2.5">
+                <Skeleton className="h-8 w-8 rounded-xl shrink-0" />
+                <div className="flex-1">
+                  <Skeleton className="h-4 w-48" />
+                  <Skeleton className="mt-2 h-3 w-32" />
+                </div>
+              </div>
+              <Skeleton className="mt-5 h-4 w-full rounded-full" />
+              <SkeletonStatCards count={4} className="mt-5 grid-cols-4" />
+            </div>
+
+            {/* Scope & Variance section */}
+            <Skeleton className="h-64 w-full rounded-2xl" />
+
+            {/* Deliverables by Type table */}
+            <div className="rounded-2xl border border-border bg-card p-5">
+              <Skeleton className="h-4 w-44" />
+              <div className="mt-4">
+                <SkeletonTable rows={6} />
+              </div>
+            </div>
+
+            {/* Team Performance table */}
+            <div className="rounded-2xl border border-border bg-card p-5">
+              <Skeleton className="h-4 w-40" />
+              <div className="mt-4">
+                <SkeletonTable rows={6} />
+              </div>
+            </div>
+          </>
+        ) : error ? (
+          <div className="flex items-center justify-center py-20 text-sm text-destructive">
+            {error}
           </div>
         ) : !data ? null : (
           <>
             {/* SOW OVERVIEW */}
-            <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-              <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div className="bg-card border border-border rounded-2xl overflow-hidden">
+              <div className="px-5 py-4 border-b border-border flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center">
-                    <Target className="w-4 h-4 text-indigo-600" />
+                  <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <Target className="w-4 h-4 text-primary" />
                   </div>
                   <div>
-                    <h2 className="text-sm font-semibold text-gray-900">SOW Progress — {monthLabel}</h2>
-                    <p className="text-[11px] text-gray-400 mt-0.5">
+                    <h2 className="text-sm font-semibold text-foreground">SOW Progress — {monthLabel}</h2>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
                       {sow?.hasSowDefined ? 'Targets defined · ' : 'No SOW targets set · '}
                       {sow?.totalTasks || 0} tasks this month
                     </p>
@@ -176,7 +221,7 @@ export default function BrandAnalyticsPage() {
                 </div>
                 {!sow?.hasSowDefined && (
                   <Link href={`/brands/${brandId}`}
-                    className="text-xs text-indigo-600 border border-indigo-200 hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors font-medium"
+                    className="text-xs text-primary border border-primary/40 hover:bg-primary/10 px-3 py-1.5 rounded-lg transition-colors font-medium"
                   >
                     + Define SOW targets
                   </Link>
@@ -184,31 +229,31 @@ export default function BrandAnalyticsPage() {
               </div>
               {sow && sow.totalTasks === 0 ? (
                 <div className="text-center py-10">
-                  <Target className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-                  <p className="text-sm text-gray-400">No tasks created in {monthLabel}</p>
+                  <Target className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">No tasks created in {monthLabel}</p>
                 </div>
               ) : sow && (
                 <div className="px-5 py-5 space-y-5">
                   {sow.totalTarget && (
                     <div className="space-y-2">
-                      <div className="w-full h-4 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="w-full h-4 bg-muted rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all duration-700 ${
-                            sow.percentComplete === 100 ? 'bg-emerald-500' :
-                            sow.percentComplete >= 70  ? 'bg-indigo-500'  :
-                            sow.percentComplete >= 40  ? 'bg-amber-400'   : 'bg-red-400'
+                            sow.percentComplete === 100 ? 'bg-success' :
+                            sow.percentComplete >= 70  ? 'bg-primary'  :
+                            sow.percentComplete >= 40  ? 'bg-warning'   : 'bg-destructive'
                           }`}
                           style={{ width: `${sow.percentComplete}%` }}
                         />
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-500">
-                          <span className="font-bold text-gray-900 text-lg">{sow.totalAchieved}</span>
-                          <span className="text-gray-400"> of </span>
-                          <span className="font-bold text-gray-900 text-lg">{sow.totalTarget}</span>
-                          <span className="text-gray-400"> total deliverables achieved</span>
+                        <span className="text-sm text-muted-foreground">
+                          <span className="font-bold text-foreground text-lg">{sow.totalAchieved}</span>
+                          <span className="text-muted-foreground"> of </span>
+                          <span className="font-bold text-foreground text-lg">{sow.totalTarget}</span>
+                          <span className="text-muted-foreground"> total deliverables achieved</span>
                         </span>
-                        <span className={`text-xl font-bold ${sow.percentComplete === 100 ? 'text-emerald-600' : sow.percentComplete >= 70 ? 'text-indigo-600' : sow.percentComplete >= 40 ? 'text-amber-600' : 'text-red-500'}`}>
+                        <span className={`text-xl font-bold ${sow.percentComplete === 100 ? 'text-success' : sow.percentComplete >= 70 ? 'text-primary' : sow.percentComplete >= 40 ? 'text-warning' : 'text-destructive'}`}>
                           {sow.percentComplete}%
                         </span>
                       </div>
@@ -216,23 +261,23 @@ export default function BrandAnalyticsPage() {
                   )}
                   <div className="grid grid-cols-4 gap-3">
                     {[
-                      { label: 'Committed',   value: sow.totalTarget ?? sow.totalTasks, color: 'bg-gray-50 border-gray-200',    v: 'text-gray-900'    },
-                      { label: 'Achieved',    value: sow.totalAchieved,                 color: 'bg-emerald-50 border-emerald-200', v: 'text-emerald-700' },
-                      { label: 'In Progress', value: sow.totalPending,                  color: 'bg-indigo-50 border-indigo-200',   v: 'text-indigo-700'  },
-                      { label: 'Rejected',    value: sow.totalRejected,                 color: 'bg-red-50 border-red-200',         v: 'text-red-600'     },
+                      { label: 'Committed',   value: sow.totalTarget ?? sow.totalTasks, color: 'bg-muted border-border',    v: 'text-foreground'    },
+                      { label: 'Achieved',    value: sow.totalAchieved,                 color: 'bg-success/10 border-success/30', v: 'text-success' },
+                      { label: 'In Progress', value: sow.totalPending,                  color: 'bg-primary/10 border-primary/40',   v: 'text-primary'  },
+                      { label: 'Rejected',    value: sow.totalRejected,                 color: 'bg-destructive/10 border-destructive/30',         v: 'text-destructive'     },
                     ].map((s) => (
                       <div key={s.label} className={`rounded-xl border p-4 ${s.color}`}>
-                        <p className="text-xs text-gray-500 mb-1">{s.label}</p>
+                        <p className="text-xs text-muted-foreground mb-1">{s.label}</p>
                         <p className={`text-2xl font-bold ${s.v}`}>{s.value}</p>
                       </div>
                     ))}
                   </div>
                   {sow.carryOvers?.filter((c) => c.confirmedByAM).length > 0 && (
-                    <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl">
-                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="flex items-start gap-2 p-3 bg-warning/10 border border-warning/30 rounded-xl">
+                      <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-xs font-semibold text-amber-800">Applied carry-overs</p>
-                        <div className="text-xs text-amber-700 mt-1 space-y-0.5">
+                        <p className="text-xs font-semibold text-warning">Applied carry-overs</p>
+                        <div className="text-xs text-warning mt-1 space-y-0.5">
                           {sow.carryOvers.filter((c) => c.confirmedByAM).map((co) => (
                             <p key={co.type}>• {co.type}: {co.amount > 0 ? '+' : ''}{co.amount} units from {co.fromMonth}</p>
                           ))}
@@ -252,22 +297,22 @@ export default function BrandAnalyticsPage() {
 
             {/* SOW BY CONTENT TYPE (unit-level progress) */}
             {data.sowByType?.length > 0 && (
-              <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-                <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-gray-900">
+              <div className="bg-card border border-border rounded-2xl overflow-hidden">
+                <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+                  <h2 className="text-sm font-semibold text-foreground">
                     Deliverables by Type
-                    <span className="ml-2 text-xs font-normal text-gray-400">({data.sowByType.length} types)</span>
+                    <span className="ml-2 text-xs font-normal text-muted-foreground">({data.sowByType.length} types)</span>
                   </h2>
                   <button
                     onClick={() => exportCSV(data.taskList, `${data.brand?.name}-sow-${format(refDate, 'yyyy-MM')}.csv`)}
-                    className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-indigo-600 border border-gray-200 hover:border-indigo-300 px-3 py-1.5 rounded-lg transition-colors"
+                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary border border-border hover:border-primary/40 px-3 py-1.5 rounded-lg transition-colors"
                   >
                     <Download className="w-3.5 h-3.5" />Export CSV
                   </button>
                 </div>
-                <div className="grid px-5 py-2.5 bg-gray-50 border-b border-gray-100" style={{ gridTemplateColumns: '144px 1fr 128px 160px' }}>
+                <div className="grid px-5 py-2.5 bg-muted border-b border-border" style={{ gridTemplateColumns: '144px 1fr 128px 160px' }}>
                   {['Type', 'Progress', 'Achieved / Target', 'Status'].map((h) => (
-                    <p key={h} className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">{h}</p>
+                    <p key={h} className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">{h}</p>
                   ))}
                 </div>
                 {data.sowByType.map((item) => <SOWTypeRow key={item.type} item={item} />)}
@@ -275,47 +320,47 @@ export default function BrandAnalyticsPage() {
             )}
 
             {/* TEAM PERFORMANCE */}
-            <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-              <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-gray-900">Team Performance</h2>
+            <div className="bg-card border border-border rounded-2xl overflow-hidden">
+              <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-foreground">Team Performance</h2>
                 <button
                   onClick={() => exportCSV(data.userStats.map((u) => ({ Name: u.name, Role: u.role, Assigned: u.assigned, Achieved: u.completed, Revisions: u.totalRevisions })), `${data.brand?.name}-team-${format(refDate, 'yyyy-MM')}.csv`)}
-                  className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-indigo-600 border border-gray-200 hover:border-indigo-300 px-3 py-1.5 rounded-lg transition-colors"
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary border border-border hover:border-primary/40 px-3 py-1.5 rounded-lg transition-colors"
                 >
                   <Download className="w-3.5 h-3.5" />Export CSV
                 </button>
               </div>
               {data.userStats.length === 0 ? (
-                <p className="px-5 py-8 text-sm text-gray-400">No team data for this period</p>
+                <p className="px-5 py-8 text-sm text-muted-foreground">No team data for this period</p>
               ) : (
                 <>
-                  <div className="grid grid-cols-[2fr_1fr_1fr_1fr_120px] px-5 py-2.5 bg-gray-50 border-b border-gray-100">
+                  <div className="grid grid-cols-[2fr_1fr_1fr_1fr_120px] px-5 py-2.5 bg-muted border-b border-border">
                     {['Member', 'Role', 'Assigned', 'Achieved', 'Progress'].map((h) => (
-                      <p key={h} className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">{h}</p>
+                      <p key={h} className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">{h}</p>
                     ))}
                   </div>
                   {data.userStats.map((u) => {
                     const pct = u.assigned > 0 ? Math.round((u.completed / u.assigned) * 100) : 0;
                     return (
-                      <div key={u._id} className="grid grid-cols-[2fr_1fr_1fr_1fr_120px] px-5 py-3.5 border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors">
+                      <div key={u._id} className="grid grid-cols-[2fr_1fr_1fr_1fr_120px] px-5 py-3.5 border-b border-border last:border-0 hover:bg-muted transition-colors">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
-                            <span className="text-[11px] font-bold text-indigo-700">{u.name?.[0]?.toUpperCase()}</span>
+                          <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <span className="text-[11px] font-bold text-primary">{u.name?.[0]?.toUpperCase()}</span>
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-gray-900">{u.name}</p>
-                            {u.totalRevisions > 0 && <p className="text-[10px] text-amber-500">↺ {u.totalRevisions} revision{u.totalRevisions !== 1 ? 's' : ''}</p>}
+                            <p className="text-sm font-medium text-foreground">{u.name}</p>
+                            {u.totalRevisions > 0 && <p className="text-[10px] text-warning">↺ {u.totalRevisions} revision{u.totalRevisions !== 1 ? 's' : ''}</p>}
                           </div>
                         </div>
-                        <span className="text-xs text-gray-500 capitalize self-center">{u.role?.replace(/_/g, ' ')}</span>
-                        <span className="text-sm text-gray-700 self-center">{u.assigned}</span>
-                        <span className="text-sm font-semibold text-emerald-600 self-center">{u.completed}</span>
+                        <span className="text-xs text-muted-foreground capitalize self-center">{u.role?.replace(/_/g, ' ')}</span>
+                        <span className="text-sm text-foreground self-center">{u.assigned}</span>
+                        <span className="text-sm font-semibold text-success self-center">{u.completed}</span>
                         <div className="self-center">
                           <div className="flex items-center gap-2">
-                            <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                              <div className={`h-full rounded-full ${pct === 100 ? 'bg-emerald-500' : 'bg-indigo-400'}`} style={{ width: `${pct}%` }} />
+                            <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                              <div className={`h-full rounded-full ${pct === 100 ? 'bg-success' : 'bg-primary'}`} style={{ width: `${pct}%` }} />
                             </div>
-                            <span className="text-[10px] font-semibold text-gray-500 w-7 text-right">{pct}%</span>
+                            <span className="text-[10px] font-semibold text-muted-foreground w-7 text-right">{pct}%</span>
                           </div>
                         </div>
                       </div>

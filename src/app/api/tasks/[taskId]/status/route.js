@@ -7,7 +7,7 @@ import RejectionLog from '@/lib/db/models/RejectionLog';
 import Notification from '@/lib/db/models/Notification';
 import ActivityLog from '@/lib/db/models/ActivityLog';
 import { canPerformAction } from '@/lib/auth/permissions';
-import { getValidTransitions, BACKWARD_TRANSITIONS } from '@/lib/workflow/transitions';
+import { getValidTransitions, getBackwardTransition } from '@/lib/workflow/transitions';
 
 export async function PATCH(request, { params }) {
   try {
@@ -154,7 +154,7 @@ export async function PATCH(request, { params }) {
     // ── NORMAL TRANSITION ──────────────────────────────────────────────────
     const validNext = getValidTransitions(task.status);
     // Also allow backward transitions
-    const backwardTarget = BACKWARD_TRANSITIONS[task.status];
+    const backwardTarget = getBackwardTransition(task.status, task);
 
     const isForward  = validNext.includes(newStatus);
     const isBackward = backwardTarget === newStatus;

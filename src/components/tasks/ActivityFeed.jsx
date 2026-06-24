@@ -12,46 +12,47 @@ import {
   PenLine,
   Clock,
 } from 'lucide-react';
+import { SkeletonList } from '@/components/shared/Skeleton';
 
 const ACTION_CONFIG = {
   status_changed: {
     icon: ArrowRight,
-    color: 'bg-blue-100 text-blue-600',
+    color: 'bg-primary/10 text-primary',
     label: (meta) => `moved to ${meta?.newStatus?.replace(/_/g, ' ')}`,
   },
   comment_added: {
     icon: MessageSquare,
-    color: 'bg-gray-100 text-gray-600',
+    color: 'bg-muted text-muted-foreground',
     label: () => 'added a comment',
   },
   task_created: {
     icon: PenLine,
-    color: 'bg-indigo-100 text-indigo-600',
+    color: 'bg-primary/10 text-primary',
     label: () => 'created this task',
   },
   task_assigned: {
     icon: UserPlus,
-    color: 'bg-purple-100 text-purple-600',
+    color: 'bg-primary/10 text-primary',
     label: () => 'was assigned',
   },
   task_rejected: {
     icon: XCircle,
-    color: 'bg-red-100 text-red-600',
+    color: 'bg-destructive/10 text-destructive',
     label: (meta) => `rejected — routed to ${meta?.routedTo?.replace(/_/g, ' ') || 'review'}`,
   },
   task_approved: {
     icon: CheckCircle2,
-    color: 'bg-green-100 text-green-600',
+    color: 'bg-success/10 text-success',
     label: () => 'approved this task',
   },
   task_live: {
     icon: Zap,
-    color: 'bg-emerald-100 text-emerald-600',
+    color: 'bg-success/10 text-success',
     label: () => 'marked as live',
   },
   task_edited: {
     icon: PenLine,
-    color: 'bg-amber-100 text-amber-600',
+    color: 'bg-warning/10 text-warning',
     label: () => 'edited this task',
   },
 };
@@ -75,18 +76,14 @@ export default function ActivityFeed({ taskId }) {
   }, [taskId]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="w-5 h-5 border-2 border-gray-200 border-t-indigo-500 rounded-full animate-spin" />
-      </div>
-    );
+    return <SkeletonList rows={4} />;
   }
 
   if (logs.length === 0) {
     return (
       <div className="text-center py-8">
-        <Clock className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-        <p className="text-sm text-gray-400">No activity yet.</p>
+        <Clock className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+        <p className="text-sm text-muted-foreground">No activity yet.</p>
       </div>
     );
   }
@@ -96,7 +93,7 @@ export default function ActivityFeed({ taskId }) {
       {logs.map((log) => {
         const config = ACTION_CONFIG[log.action] || {
           icon: Clock,
-          color: 'bg-gray-100 text-gray-500',
+          color: 'bg-muted text-muted-foreground',
           label: () => log.action,
         };
         const Icon = config.icon;
@@ -109,16 +106,16 @@ export default function ActivityFeed({ taskId }) {
               <Icon className="w-3.5 h-3.5" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm text-gray-700 leading-snug">
+              <p className="text-sm text-foreground leading-snug">
                 <span className="font-medium">{actorName}</span>{' '}
                 {config.label(log.metadata)}
               </p>
               {log.metadata?.preview && (
-                <p className="text-xs text-gray-400 mt-0.5 truncate">
+                <p className="text-xs text-muted-foreground mt-0.5 truncate">
                   "{log.metadata.preview}"
                 </p>
               )}
-              <p className="text-xs text-gray-400 mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
               </p>
             </div>

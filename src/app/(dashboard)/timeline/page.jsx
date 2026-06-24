@@ -5,6 +5,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { format, isToday, differenceInCalendarDays } from 'date-fns';
 import { Calendar, AlertCircle, Clock, ChevronDown, Filter, LayoutList } from 'lucide-react';
 import { isOverdue, isDeadlineWithinBusinessDays, businessDaysBetween } from '@/lib/business-days';
+import { SkeletonTable } from '@/components/shared/Skeleton';
 
 const STATUS_LABELS = {
   copy_wip:        'Copy WIP',
@@ -17,23 +18,23 @@ const STATUS_LABELS = {
 };
 
 const STATUS_STYLES = {
-  copy_wip:        'bg-purple-100 text-purple-700',
-  video_wip:       'bg-violet-100 text-violet-700',
-  design_wip:      'bg-blue-100 text-blue-700',
-  internal_review: 'bg-amber-100 text-amber-700',
-  sent_to_client:  'bg-cyan-100 text-cyan-700',
-  approved:        'bg-green-100 text-green-700',
-  rejected:        'bg-red-100 text-red-700',
+  copy_wip:        'bg-[--color-chart-4]/15 text-[--color-chart-4]',
+  video_wip:       'bg-[--color-chart-5]/15 text-[--color-chart-5]',
+  design_wip:      'bg-[--color-chart-2]/15 text-[--color-chart-2]',
+  internal_review: 'bg-warning/10 text-warning',
+  sent_to_client:  'bg-[--color-chart-1]/15 text-[--color-chart-1]',
+  approved:        'bg-success/10 text-success',
+  rejected:        'bg-destructive/10 text-destructive',
 };
 
 const PRIORITY_STYLES = {
-  high:   'bg-red-100 text-red-700',
-  medium: 'bg-amber-100 text-amber-700',
-  low:    'bg-gray-100 text-gray-500',
+  high:   'bg-destructive/10 text-destructive',
+  medium: 'bg-warning/10 text-warning',
+  low:    'bg-muted text-muted-foreground',
 };
 
 function DeadlineCell({ date }) {
-  if (!date) return <span className="text-gray-300 text-sm">—</span>;
+  if (!date) return <span className="text-muted-foreground text-sm">—</span>;
 
   const d     = new Date(date);
   const today = new Date();
@@ -48,10 +49,10 @@ function DeadlineCell({ date }) {
   if (overdue) {
     return (
       <div className="flex items-center gap-1.5">
-        <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+        <AlertCircle className="w-3.5 h-3.5 text-destructive shrink-0" />
         <div>
-          <p className="text-sm font-medium text-red-600">{format(d, 'dd MMM yyyy')}</p>
-          <p className="text-xs text-red-400">{Math.abs(daysLeft)}d overdue</p>
+          <p className="text-sm font-medium text-destructive">{format(d, 'dd MMM yyyy')}</p>
+          <p className="text-xs text-destructive">{Math.abs(daysLeft)}d overdue</p>
         </div>
       </div>
     );
@@ -60,10 +61,10 @@ function DeadlineCell({ date }) {
   if (dueToday) {
     return (
       <div className="flex items-center gap-1.5">
-        <Clock className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+        <Clock className="w-3.5 h-3.5 text-warning shrink-0" />
         <div>
-          <p className="text-sm font-medium text-orange-600">Today</p>
-          <p className="text-xs text-orange-400">Due today</p>
+          <p className="text-sm font-medium text-warning">Today</p>
+          <p className="text-xs text-warning">Due today</p>
         </div>
       </div>
     );
@@ -72,10 +73,10 @@ function DeadlineCell({ date }) {
   if (within3bd) {
     return (
       <div className="flex items-center gap-1.5">
-        <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+        <Clock className="w-3.5 h-3.5 text-warning shrink-0" />
         <div>
-          <p className="text-sm font-medium text-amber-700">{format(d, 'dd MMM yyyy')}</p>
-          <p className="text-xs text-amber-500">{bdLeft} biz day{bdLeft !== 1 ? 's' : ''} left</p>
+          <p className="text-sm font-medium text-warning">{format(d, 'dd MMM yyyy')}</p>
+          <p className="text-xs text-warning">{bdLeft} biz day{bdLeft !== 1 ? 's' : ''} left</p>
         </div>
       </div>
     );
@@ -83,8 +84,8 @@ function DeadlineCell({ date }) {
 
   return (
     <div>
-      <p className="text-sm text-gray-700">{format(d, 'dd MMM yyyy')}</p>
-      <p className="text-xs text-gray-400">{daysLeft}d left</p>
+      <p className="text-sm text-foreground">{format(d, 'dd MMM yyyy')}</p>
+      <p className="text-xs text-muted-foreground">{daysLeft}d left</p>
     </div>
   );
 }
@@ -102,10 +103,10 @@ function getRowUrgency(task) {
 }
 
 function getRowBg(urgency) {
-  if (urgency === 0) return 'bg-red-50 hover:bg-red-100/60';
-  if (urgency === 1) return 'bg-orange-50 hover:bg-orange-100/60';
-  if (urgency === 2) return 'bg-amber-50/60 hover:bg-amber-100/60';
-  return 'bg-white hover:bg-gray-50';
+  if (urgency === 0) return 'bg-destructive/10 hover:bg-destructive/15';
+  if (urgency === 1) return 'bg-warning/10 hover:bg-warning/15';
+  if (urgency === 2) return 'bg-warning/10 hover:bg-warning/15';
+  return 'bg-card hover:bg-muted';
 }
 
 export default function TimelinePage() {
@@ -162,17 +163,17 @@ export default function TimelinePage() {
   const anyFilter = filterBrand !== 'all' || filterStatus !== 'all' || filterPriority !== 'all' || filterUrgency !== 'all';
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-gray-50">
+    <div className="flex flex-col h-full overflow-hidden bg-background">
 
       {/* Header */}
-      <div className="shrink-0 px-6 pt-6 pb-4 border-b border-gray-100 bg-white">
+      <div className="shrink-0 px-6 pt-6 pb-4 border-b border-border bg-card backdrop-blur-xl">
         <div className="flex items-start justify-between mb-4">
           <div>
             <div className="flex items-center gap-2 mb-0.5">
-              <Calendar className="w-4 h-4 text-gray-400" />
-              <h1 className="text-lg font-semibold text-gray-900">Timeline</h1>
+              <Calendar className="w-4 h-4 text-muted-foreground" />
+              <h1 className="text-lg font-display text-foreground">Timeline</h1>
             </div>
-            <p className="text-sm text-gray-400 ml-6">
+            <p className="text-sm text-muted-foreground ml-6">
               {tasks.length} task{tasks.length !== 1 ? 's' : ''} across all brands
             </p>
           </div>
@@ -184,8 +185,8 @@ export default function TimelinePage() {
                 onClick={() => setFilterUrgency(filterUrgency === 'overdue' ? 'all' : 'overdue')}
                 className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
                   filterUrgency === 'overdue'
-                    ? 'bg-red-600 text-white border-red-600'
-                    : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
+                    ? 'bg-destructive text-destructive-foreground border-destructive'
+                    : 'bg-destructive/10 text-destructive border-destructive/30 hover:bg-destructive/15'
                 }`}
               >
                 <AlertCircle className="w-3 h-3" />
@@ -197,8 +198,8 @@ export default function TimelinePage() {
                 onClick={() => setFilterUrgency(filterUrgency === 'today' ? 'all' : 'today')}
                 className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
                   filterUrgency === 'today'
-                    ? 'bg-orange-500 text-white border-orange-500'
-                    : 'bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100'
+                    ? 'bg-warning text-warning-foreground border-warning'
+                    : 'bg-warning/10 text-warning border-warning/30 hover:bg-warning/15'
                 }`}
               >
                 <Clock className="w-3 h-3" />
@@ -210,8 +211,8 @@ export default function TimelinePage() {
                 onClick={() => setFilterUrgency(filterUrgency === 'soon' ? 'all' : 'soon')}
                 className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
                   filterUrgency === 'soon'
-                    ? 'bg-amber-500 text-white border-amber-500'
-                    : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                    ? 'bg-warning text-warning-foreground border-warning'
+                    : 'bg-warning/10 text-warning border-warning/30 hover:bg-warning/15'
                 }`}
               >
                 <Clock className="w-3 h-3" />
@@ -223,7 +224,7 @@ export default function TimelinePage() {
 
         {/* Filter bar */}
         <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-1.5 text-xs text-gray-400">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Filter className="w-3.5 h-3.5" />
             Filter:
           </div>
@@ -233,14 +234,14 @@ export default function TimelinePage() {
             <select
               value={filterBrand}
               onChange={(e) => setFilterBrand(e.target.value)}
-              className="text-xs border border-gray-200 rounded-lg pl-3 pr-7 py-1.5 focus:outline-none focus:border-indigo-400 bg-white text-gray-700 appearance-none"
+              className="text-xs border border-border rounded-lg pl-3 pr-7 py-1.5 focus:outline-none focus:border-ring bg-card text-foreground appearance-none"
             >
               <option value="all">All Brands</option>
               {brands.map((b) => (
                 <option key={b._id} value={b._id}>{b.name}</option>
               ))}
             </select>
-            <ChevronDown className="w-3 h-3 text-gray-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <ChevronDown className="w-3 h-3 text-muted-foreground absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
 
           {/* Status */}
@@ -248,14 +249,14 @@ export default function TimelinePage() {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="text-xs border border-gray-200 rounded-lg pl-3 pr-7 py-1.5 focus:outline-none focus:border-indigo-400 bg-white text-gray-700 appearance-none"
+              className="text-xs border border-border rounded-lg pl-3 pr-7 py-1.5 focus:outline-none focus:border-ring bg-card text-foreground appearance-none"
             >
               <option value="all">All Statuses</option>
               {Object.entries(STATUS_LABELS).map(([key, label]) => (
                 <option key={key} value={key}>{label}</option>
               ))}
             </select>
-            <ChevronDown className="w-3 h-3 text-gray-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <ChevronDown className="w-3 h-3 text-muted-foreground absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
 
           {/* Priority */}
@@ -263,26 +264,26 @@ export default function TimelinePage() {
             <select
               value={filterPriority}
               onChange={(e) => setFilterPriority(e.target.value)}
-              className="text-xs border border-gray-200 rounded-lg pl-3 pr-7 py-1.5 focus:outline-none focus:border-indigo-400 bg-white text-gray-700 appearance-none"
+              className="text-xs border border-border rounded-lg pl-3 pr-7 py-1.5 focus:outline-none focus:border-ring bg-card text-foreground appearance-none"
             >
               <option value="all">All Priorities</option>
               <option value="high">High</option>
               <option value="medium">Medium</option>
               <option value="low">Low</option>
             </select>
-            <ChevronDown className="w-3 h-3 text-gray-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <ChevronDown className="w-3 h-3 text-muted-foreground absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
 
           {anyFilter && (
             <button
               onClick={() => { setFilterBrand('all'); setFilterStatus('all'); setFilterPriority('all'); setFilterUrgency('all'); }}
-              className="text-xs text-indigo-500 hover:text-indigo-700 underline transition-colors"
+              className="text-xs text-primary hover:text-primary underline transition-colors"
             >
               Clear filters
             </button>
           )}
 
-          <span className="ml-auto text-xs text-gray-400">
+          <span className="ml-auto text-xs text-muted-foreground">
             {filtered.length} task{filtered.length !== 1 ? 's' : ''}
           </span>
         </div>
@@ -291,27 +292,25 @@ export default function TimelinePage() {
       {/* Table */}
       <div className="flex-1 overflow-auto px-6 py-4">
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="w-6 h-6 border-2 border-gray-200 border-t-indigo-500 rounded-full animate-spin" />
-          </div>
+          <SkeletonTable rows={8} className="rounded-2xl" />
         ) : tasks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-            <LayoutList className="w-10 h-10 mb-3 text-gray-200" />
-            <p className="text-sm font-medium text-gray-500">No tasks found</p>
-            <p className="text-xs mt-1 text-gray-400">Create tasks in a brand to see them here</p>
+          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+            <LayoutList className="w-10 h-10 mb-3 text-muted-foreground" />
+            <p className="text-sm font-medium text-muted-foreground">No tasks found</p>
+            <p className="text-xs mt-1 text-muted-foreground">Create tasks in a brand to see them here</p>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-            <LayoutList className="w-10 h-10 mb-3 text-gray-200" />
-            <p className="text-sm font-medium text-gray-500">No tasks match your filters</p>
+          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+            <LayoutList className="w-10 h-10 mb-3 text-muted-foreground" />
+            <p className="text-sm font-medium text-muted-foreground">No tasks match your filters</p>
             <p className="text-xs mt-1">Try adjusting the filters above</p>
           </div>
         ) : (
-          <div className="rounded-2xl border border-gray-200 overflow-hidden bg-white">
+          <div className="rounded-2xl border border-border overflow-hidden bg-card backdrop-blur-xl">
             {/* Header row */}
-            <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] bg-gray-50 border-b border-gray-200 px-4 py-3">
+            <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] bg-muted border-b border-border px-4 py-3">
               {['Task', 'Brand', 'Status', 'Priority', 'Internal Deadline', 'External Deadline'].map((h) => (
-                <p key={h} className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{h}</p>
+                <p key={h} className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{h}</p>
               ))}
             </div>
 
@@ -322,27 +321,27 @@ export default function TimelinePage() {
               return (
                 <div
                   key={task._id}
-                  className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] px-4 py-3.5 border-b border-gray-100 last:border-0 transition-colors ${getRowBg(urgency)}`}
+                  className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] px-4 py-3.5 border-b border-border last:border-0 transition-colors ${getRowBg(urgency)}`}
                 >
                   {/* Task name + assignees */}
                   <div className="min-w-0 pr-4">
-                    <p className="text-sm font-medium text-gray-900 truncate">{task.title}</p>
+                    <p className="text-sm font-medium text-foreground truncate">{task.title}</p>
                     {task.assignees?.length > 0 && (
                       <div className="flex -space-x-1 mt-1.5">
                         {task.assignees.slice(0, 3).map((a) => (
                           <div
                             key={a._id}
                             title={a.name}
-                            className="w-5 h-5 rounded-full bg-indigo-100 border-2 border-white flex items-center justify-center shrink-0"
+                            className="w-5 h-5 rounded-full bg-primary/10 border-2 border-card flex items-center justify-center shrink-0"
                           >
-                            <span className="text-[9px] font-semibold text-indigo-700">
+                            <span className="text-[9px] font-semibold text-primary">
                               {a.name?.[0]?.toUpperCase()}
                             </span>
                           </div>
                         ))}
                         {task.assignees.length > 3 && (
-                          <div className="w-5 h-5 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center">
-                            <span className="text-[9px] text-gray-500">+{task.assignees.length - 3}</span>
+                          <div className="w-5 h-5 rounded-full bg-muted border-2 border-card flex items-center justify-center">
+                            <span className="text-[9px] text-muted-foreground">+{task.assignees.length - 3}</span>
                           </div>
                         )}
                       </div>
@@ -354,19 +353,19 @@ export default function TimelinePage() {
                     {brand?.color && (
                       <span className="w-2 h-2 rounded-full shrink-0 mt-1" style={{ backgroundColor: brand.color }} />
                     )}
-                    <span className="text-sm text-gray-700 truncate">{brand?.name || '—'}</span>
+                    <span className="text-sm text-foreground truncate">{brand?.name || '—'}</span>
                   </div>
 
                   {/* Status */}
                   <div>
-                    <span className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_STYLES[task.status] || 'bg-gray-100 text-gray-500'}`}>
+                    <span className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_STYLES[task.status] || 'bg-muted text-muted-foreground'}`}>
                       {STATUS_LABELS[task.status] || task.status}
                     </span>
                   </div>
 
                   {/* Priority */}
                   <div>
-                    <span className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full capitalize ${PRIORITY_STYLES[task.priority] || 'bg-gray-100 text-gray-500'}`}>
+                    <span className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full capitalize ${PRIORITY_STYLES[task.priority] || 'bg-muted text-muted-foreground'}`}>
                       {task.priority}
                     </span>
                   </div>

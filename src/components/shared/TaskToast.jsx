@@ -35,9 +35,9 @@ function Toast({ notification, onClose, onNavigate }) {
         transform:  visible ? 'translateX(0)'    : 'translateX(110%)',
         opacity:    visible ? 1                  : 0,
         transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease',
-        background: '#ffffff',
-        border:     '1px solid #e5e7eb',
-        borderLeft: '3px solid #4f46e5',
+        background: 'var(--card)',
+        border:     '1px solid var(--border)',
+        borderLeft: '3px solid var(--primary)',
         borderRadius: '12px',
         boxShadow:  '0 8px 32px rgba(0,0,0,0.12)',
         padding:    '12px 14px',
@@ -53,24 +53,24 @@ function Toast({ notification, onClose, onNavigate }) {
       {/* Icon */}
       <div style={{
         width: 32, height: 32, borderRadius: 8,
-        background: '#eef2ff',
+        background: 'color-mix(in oklab, var(--primary) 12%, transparent)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexShrink: 0,
       }}>
-        <Bell size={14} color="#4f46e5" />
+        <Bell size={14} color="var(--primary)" />
       </div>
 
       {/* Content */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontSize: 12, fontWeight: 700, color: '#111827', margin: '0 0 2px 0' }}>
+        <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--foreground)', margin: '0 0 2px 0' }}>
           New Task Assigned
         </p>
-        <p style={{ fontSize: 12, color: '#6b7280', margin: 0, lineHeight: 1.4 }}>
+        <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: 0, lineHeight: 1.4 }}>
           {notification.message}
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 6 }}>
-          <span style={{ fontSize: 11, color: '#4f46e5', fontWeight: 500 }}>View task</span>
-          <ArrowRight size={10} color="#4f46e5" />
+          <span style={{ fontSize: 11, color: 'var(--primary)', fontWeight: 500 }}>View task</span>
+          <ArrowRight size={10} color="var(--primary)" />
         </div>
       </div>
 
@@ -83,7 +83,7 @@ function Toast({ notification, onClose, onNavigate }) {
         }}
         style={{
           background: 'transparent', border: 'none',
-          cursor: 'pointer', color: '#9ca3af',
+          cursor: 'pointer', color: 'var(--muted-foreground)',
           padding: 2, display: 'flex', flexShrink: 0,
         }}
       >
@@ -98,7 +98,7 @@ export default function TaskToast() {
   const router = useRouter();
   const [toasts, setToasts]         = useState([]);
   const seenIdsRef                  = useRef(new Set());
-  const isAdminOrAM = ['admin', 'account_manager'].includes(session?.user?.role);
+  const isAdminOrAM = ['superadmin', 'admin', 'account_manager'].includes(session?.user?.role);
 
   // Employees only — admins/AMs don't need task assignment toasts
   const shouldPoll = session && !isAdminOrAM;

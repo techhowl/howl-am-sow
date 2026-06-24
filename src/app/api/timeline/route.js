@@ -13,7 +13,7 @@ export async function GET(req) {
 
     await connectDB();
 
-    const isAdminOrAM = ['admin', 'account_manager'].includes(session.user.role);
+    const isAdminOrAM = ['superadmin', 'admin', 'account_manager'].includes(session.user.role);
 
     let filter = { status: { $ne: 'live' } };
 

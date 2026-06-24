@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
 import NotificationBell from '@/components/layout/NotificationBell'
+import { ThemeToggle } from '@/components/shared/ThemeToggle'
+import { Logo } from '@/components/shared/Logo'
 import {
   LayoutDashboard,
   Layers,
@@ -17,17 +19,18 @@ const NAV = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: 'all' },
   { label: 'Brands',    href: '/brands',    icon: Layers,          roles: 'all' },
   { label: 'Timeline',  href: '/timeline',  icon: Calendar,        roles: 'all' },
-  { label: 'Analytics', href: '/analytics', icon: BarChart2,       roles: ['admin', 'account_manager'] },
-  { label: 'Users',     href: '/users',     icon: Users,           roles: ['admin', 'account_manager'] },
+  { label: 'Analytics', href: '/analytics', icon: BarChart2,       roles: ['superadmin', 'admin', 'account_manager'] },
+  { label: 'Users',     href: '/users',     icon: Users,           roles: ['superadmin'] },
 ]
 
 const ROLE_LABELS = {
+  superadmin:      'Super Admin',
   admin:           'Admin',
   account_manager: 'Account Manager',
   designer:        'Designer',
   copywriter:      'Copywriter',
   motion_designer: 'Motion Designer',
-  strategist:      'Strategist',
+  user:            'User',
 }
 
 export default function Sidebar() {
@@ -48,23 +51,18 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="fixed top-0 left-0 h-screen flex flex-col z-40 bg-sidebar border-r border-sidebar-border"
+      className="fixed top-0 left-0 h-screen flex flex-col z-40 bg-sidebar text-sidebar-foreground border-r border-sidebar-border backdrop-blur-xl"
       style={{ width: '220px' }}
     >
       {/* Logo + Bell */}
       <div
         className="flex items-center justify-between px-4 py-4 border-b border-sidebar-border shrink-0"
       >
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0">
-            H
-          </div>
-          <div>
-            <p className="text-gray-50 text-[13px] font-semibold leading-none">Howl</p>
-            <p className="text-gray-500 text-[10px] mt-0.5">SOW Tracker</p>
-          </div>
+        <Logo size={30} priority />
+        <div className="flex items-center gap-1">
+          <ThemeToggle className="h-8 w-8 border-sidebar-border bg-transparent text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground" />
+          <NotificationBell />
         </div>
-        <NotificationBell />
       </div>
 
       {/* Nav */}
@@ -78,8 +76,8 @@ export default function Sidebar() {
               href={item.href}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-150 ${
                 active
-                  ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/20'
-                  : 'text-gray-400 border border-transparent hover:bg-sidebar-hover hover:text-gray-200'
+                  ? 'bg-sidebar-accent text-sidebar-primary border border-sidebar-border'
+                  : 'text-sidebar-foreground/60 border border-transparent hover:bg-sidebar-accent hover:text-sidebar-foreground'
               }`}
             >
               <Icon className="w-4 h-4 shrink-0" />
@@ -91,19 +89,19 @@ export default function Sidebar() {
 
       {/* User */}
       <div className="px-2 py-3 border-t border-sidebar-border shrink-0">
-        <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-sidebar-hover mb-1">
-          <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+        <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-sidebar-accent mb-1">
+          <div className="w-7 h-7 rounded-lg bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground text-[10px] font-bold shrink-0 ring-1 ring-sidebar-border shadow-sm">
             {initials || '?'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[12px] font-medium text-gray-100 truncate leading-none">{name}</p>
-            <p className="text-[10px] text-gray-500 mt-0.5 truncate">{ROLE_LABELS[role] || role}</p>
+            <p className="text-[12px] font-medium text-sidebar-foreground truncate leading-none">{name}</p>
+            <p className="text-[10px] text-sidebar-foreground/55 mt-0.5 truncate">{ROLE_LABELS[role] || role}</p>
           </div>
         </div>
 
         <button
           onClick={() => signOut({ callbackUrl: '/login' })}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] text-gray-500 hover:bg-red-500/10 hover:text-red-400 transition-all duration-150"
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] text-sidebar-foreground/55 hover:bg-destructive/10 hover:text-destructive transition-all duration-150"
         >
           <LogOut className="w-4 h-4 shrink-0" />
           Sign out

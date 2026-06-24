@@ -9,6 +9,7 @@ import KanbanColumn from '@/components/tasks/KanbanColumn';
 import CreateTaskModal from '@/components/tasks/CreateTaskModal';
 import TaskDetailModal from '@/components/tasks/TaskDetailModal';
 import { KANBAN_COLUMNS } from '@/lib/constants/tasks';
+import { SkeletonKanban } from '@/components/shared/Skeleton';
 
 // Row 1 = production stages (copy → design → video), no internal_review
 // Row 2 = client stages
@@ -31,7 +32,7 @@ export default function TasksPage() {
   const [filterPriority, setFilterPriority]   = useState('all');
   const [filterAssignee, setFilterAssignee]   = useState('all');
 
-  const canManage = ['admin', 'account_manager'].includes(session?.user?.role);
+  const canManage = ['superadmin', 'admin', 'account_manager'].includes(session?.user?.role);
 
   const fetchData = useCallback(async () => {
     setError('');
@@ -86,27 +87,19 @@ export default function TasksPage() {
   const totalLive     = tasks.filter((t) => t.status === 'live').length;
   const totalRejected = tasks.filter((t) => t.status === 'rejected').length;
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
   return (
-    <div className="flex flex-col min-h-screen p-6 md:p-8 bg-gray-50">
+    <div className="flex flex-col min-h-screen p-6 md:p-8 bg-background">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">
+          <h1 className="text-xl font-display italic text-foreground">
             {brand?.name ? `${brand.name} — Tasks` : 'Tasks'}
           </h1>
           <div className="flex items-center gap-4 mt-1">
-            <span className="text-xs text-gray-500">{totalOpen} open</span>
-            <span className="text-xs text-emerald-600 font-medium">{totalLive} live</span>
+            <span className="text-xs text-muted-foreground">{totalOpen} open</span>
+            <span className="text-xs text-success font-medium">{totalLive} live</span>
             {totalRejected > 0 && (
-              <span className="flex items-center gap-1 text-xs text-red-500 font-medium">
+              <span className="flex items-center gap-1 text-xs text-destructive font-medium">
                 <AlertCircle className="w-3 h-3" />
                 {totalRejected} rejected
               </span>
@@ -116,7 +109,7 @@ export default function TasksPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={fetchData}
-            className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-white border border-gray-200 transition-colors"
+            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-card border border-border transition-colors"
             title="Refresh"
           >
             <RefreshCw className="w-4 h-4" />
@@ -124,7 +117,7 @@ export default function TasksPage() {
           {canManage && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors"
             >
               <Plus className="w-4 h-4" />
               New Task
@@ -135,14 +128,14 @@ export default function TasksPage() {
 
       {/* Filters */}
       <div className="flex items-center gap-3 mb-6 flex-wrap">
-        <div className="flex items-center gap-1.5 text-sm text-gray-500">
+        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
           <SlidersHorizontal className="w-4 h-4" />
           Filter:
         </div>
         <select
           value={filterPriority}
           onChange={(e) => setFilterPriority(e.target.value)}
-          className="border border-gray-200 bg-white rounded-lg px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+          className="border border-border bg-card rounded-lg px-3 py-1.5 text-sm text-foreground focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring"
         >
           <option value="all">All Priorities</option>
           <option value="high">High</option>
@@ -152,7 +145,7 @@ export default function TasksPage() {
         <select
           value={filterAssignee}
           onChange={(e) => setFilterAssignee(e.target.value)}
-          className="border border-gray-200 bg-white rounded-lg px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+          className="border border-border bg-card rounded-lg px-3 py-1.5 text-sm text-foreground focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring"
         >
           <option value="all">All Assignees</option>
           {brandMembers.map((m) => {
@@ -164,54 +157,58 @@ export default function TasksPage() {
         {(filterPriority !== 'all' || filterAssignee !== 'all') && (
           <button
             onClick={() => { setFilterPriority('all'); setFilterAssignee('all'); }}
-            className="text-xs text-indigo-600 hover:text-indigo-800 underline transition-colors"
+            className="text-xs text-primary hover:text-primary/80 underline transition-colors"
           >
             Clear filters
           </button>
         )}
-        <span className="ml-auto text-xs text-gray-400">
+        <span className="ml-auto text-xs text-muted-foreground">
           {filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''}
         </span>
       </div>
 
       {error && (
-        <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+        <div className="mb-4 text-sm text-destructive bg-destructive/10 border border-destructive/30 rounded-lg px-4 py-3">
           {error}
         </div>
       )}
 
       {/* Kanban: 3 (production) + 4 (client) two-row layout */}
-      <div className="flex flex-col gap-6 flex-1">
-        <div className="grid grid-cols-3 gap-4">
-          {ROW_1.map((col) => (
-            <KanbanColumn
-              key={col}
-              status={col}
-              tasks={tasksByStatus[col] || []}
-              onTaskClick={(task) => setSelectedTask(task)}
-            />
-          ))}
-        </div>
+      {loading ? (
+        <SkeletonKanban columns={5} cards={3} className="flex-1" />
+      ) : (
+        <div className="flex flex-col gap-6 flex-1">
+          <div className="grid grid-cols-3 gap-4">
+            {ROW_1.map((col) => (
+              <KanbanColumn
+                key={col}
+                status={col}
+                tasks={tasksByStatus[col] || []}
+                onTaskClick={(task) => setSelectedTask(task)}
+              />
+            ))}
+          </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex-1 h-px bg-gray-200" />
-          <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-2">
-            Client Stage
-          </span>
-          <div className="flex-1 h-px bg-gray-200" />
-        </div>
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest px-2">
+              Client Stage
+            </span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
 
-        <div className="grid grid-cols-4 gap-4">
-          {ROW_2.map((col) => (
-            <KanbanColumn
-              key={col}
-              status={col}
-              tasks={tasksByStatus[col] || []}
-              onTaskClick={(task) => setSelectedTask(task)}
-            />
-          ))}
+          <div className="grid grid-cols-4 gap-4">
+            {ROW_2.map((col) => (
+              <KanbanColumn
+                key={col}
+                status={col}
+                tasks={tasksByStatus[col] || []}
+                onTaskClick={(task) => setSelectedTask(task)}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Modals */}
       {showCreateModal && (

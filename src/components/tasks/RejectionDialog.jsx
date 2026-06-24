@@ -56,9 +56,9 @@ export default function RejectionDialog({ task, onClose, onRejected }) {
       >
         <div
           style={{
-            background:    '#ffffff',
+            background:    'var(--card)',
             borderRadius:  '16px',
-            border:        '1px solid #e5e7eb',
+            border:        '1px solid var(--border)',
             boxShadow:     '0 25px 80px rgba(0, 0, 0, 0.18)',
             width:         '100%',
             maxWidth:      '400px',
@@ -67,32 +67,32 @@ export default function RejectionDialog({ task, onClose, onRejected }) {
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid #f3f4f6' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 32, height: 32, borderRadius: 10, background: '#fef2f2', border: '1px solid #fecaca', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <AlertTriangle size={16} color="#dc2626" />
+              <div style={{ width: 32, height: 32, borderRadius: 10, background: 'color-mix(in oklch, var(--destructive) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--destructive) 30%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <AlertTriangle size={16} color="var(--destructive)" />
               </div>
               <div>
-                <p style={{ fontSize: 14, fontWeight: 600, color: '#111827', margin: 0 }}>Reject Task</p>
-                <p style={{ fontSize: 11, color: '#9ca3af', margin: 0, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--foreground)', margin: 0 }}>Reject Task</p>
+                <p style={{ fontSize: 11, color: 'var(--muted-foreground)', margin: 0, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {task.title}
                 </p>
               </div>
             </div>
-            <button onClick={onClose} style={{ padding: 6, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: '#9ca3af', display: 'flex' }}>
+            <button onClick={onClose} style={{ padding: 6, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--muted-foreground)', display: 'flex' }}>
               <X size={16} />
             </button>
           </div>
 
           {/* Body */}
           <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ padding: '12px 14px', borderRadius: 10, background: '#fef2f2', border: '1px solid #fecaca', fontSize: 12, color: '#dc2626', lineHeight: 1.5 }}>
+            <div style={{ padding: '12px 14px', borderRadius: 10, background: 'color-mix(in oklch, var(--destructive) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--destructive) 30%, transparent)', fontSize: 12, color: 'var(--destructive)', lineHeight: 1.5 }}>
               This will increment the revision count. The task will stay in the <strong>Rejected</strong> column until you route it back for revision.
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#6b7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Reason <span style={{ color: '#9ca3af', fontWeight: 400, textTransform: 'none' }}>(optional)</span>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Reason <span style={{ color: 'var(--muted-foreground)', fontWeight: 400, textTransform: 'none' }}>(optional)</span>
               </label>
               <textarea
                 value={reason}
@@ -100,35 +100,35 @@ export default function RejectionDialog({ task, onClose, onRejected }) {
                 placeholder="What needs to be changed?"
                 rows={3}
                 style={{
-                  width: '100%', background: '#fff', border: '1px solid #e5e7eb',
-                  borderRadius: 8, color: '#111827', fontSize: 13, padding: '8px 12px',
+                  width: '100%', background: 'var(--input)', border: '1px solid var(--border)',
+                  borderRadius: 8, color: 'var(--foreground)', fontSize: 13, padding: '8px 12px',
                   fontFamily: 'inherit', boxSizing: 'border-box', resize: 'none', outline: 'none',
                 }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = '#6366f1'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)'; }}
-                onBlur={(e)  => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--ring)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in oklch, var(--ring) 30%, transparent)'; }}
+                onBlur={(e)  => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none'; }}
               />
             </div>
 
             {error && (
-              <p style={{ fontSize: 12, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '8px 12px', margin: 0 }}>
+              <p style={{ fontSize: 12, color: 'var(--destructive)', background: 'color-mix(in oklch, var(--destructive) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--destructive) 30%, transparent)', borderRadius: 8, padding: '8px 12px', margin: 0 }}>
                 {error}
               </p>
             )}
           </div>
 
           {/* Footer */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '16px 24px', borderTop: '1px solid #f3f4f6' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '16px 24px', borderTop: '1px solid var(--border)' }}>
             <button
               onClick={onClose}
               disabled={loading}
-              style={{ padding: '8px 16px', fontSize: 13, fontWeight: 500, color: '#374151', background: '#f3f4f6', border: 'none', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}
+              style={{ padding: '8px 16px', fontSize: 13, fontWeight: 500, color: 'var(--foreground)', background: 'var(--muted)', border: 'none', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}
             >
               Cancel
             </button>
             <button
               onClick={handleReject}
               disabled={loading}
-              style={{ padding: '8px 18px', fontSize: 13, fontWeight: 500, color: '#fff', background: loading ? '#fca5a5' : '#dc2626', border: 'none', borderRadius: 8, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: loading ? 0.7 : 1 }}
+              style={{ padding: '8px 18px', fontSize: 13, fontWeight: 500, color: 'var(--destructive-foreground)', background: 'var(--destructive)', border: 'none', borderRadius: 8, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: loading ? 0.7 : 1 }}
             >
               {loading ? 'Rejecting...' : 'Confirm Rejection'}
             </button>

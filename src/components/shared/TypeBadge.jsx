@@ -1,12 +1,12 @@
 const TYPE_STYLES = {
-  video: { label: 'Video', bg: 'bg-purple-50', text: 'text-purple-700' },
-  video_adapt: { label: 'Video Adapt', bg: 'bg-purple-50', text: 'text-purple-700' },
-  static: { label: 'Static', bg: 'bg-blue-50', text: 'text-blue-700' },
-  static_adapt: { label: 'Static Adapt', bg: 'bg-blue-50', text: 'text-blue-700' },
-  carousel: { label: 'Carousel', bg: 'bg-pink-50', text: 'text-pink-700' },
-  gif: { label: 'GIF', bg: 'bg-amber-50', text: 'text-amber-700' },
-  performance_asset: { label: 'Performance', bg: 'bg-green-50', text: 'text-green-700' },
-  custom: { label: 'Custom', bg: 'bg-gray-100', text: 'text-gray-600' },
+  video: { label: 'Video', bg: 'bg-[var(--color-chart-5)]/10', text: 'text-[var(--color-chart-5)]' },
+  video_adapt: { label: 'Video Adapt', bg: 'bg-[var(--color-chart-5)]/10', text: 'text-[var(--color-chart-5)]' },
+  static: { label: 'Static', bg: 'bg-[var(--color-chart-2)]/10', text: 'text-[var(--color-chart-2)]' },
+  static_adapt: { label: 'Static Adapt', bg: 'bg-[var(--color-chart-2)]/10', text: 'text-[var(--color-chart-2)]' },
+  carousel: { label: 'Carousel', bg: 'bg-[var(--color-chart-4)]/10', text: 'text-[var(--color-chart-4)]' },
+  gif: { label: 'GIF', bg: 'bg-[var(--color-chart-3)]/10', text: 'text-[var(--color-chart-3)]' },
+  performance_asset: { label: 'Performance', bg: 'bg-[var(--color-chart-1)]/10', text: 'text-[var(--color-chart-1)]' },
+  custom: { label: 'Custom', bg: 'bg-muted', text: 'text-muted-foreground' },
 }
 
 export default function TypeBadge({ type, customTypeName }) {

@@ -2,6 +2,7 @@
 'use client';
 
 import { useState } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { X, ChevronRight, ChevronLeft, Trash2, Edit2, Check, RotateCcw, Calendar } from 'lucide-react';
 import Portal from '@/components/shared/Portal';
 import PriorityBadge from '@/components/shared/PriorityBadge';
@@ -10,6 +11,7 @@ import RejectionDialog from '@/components/tasks/RejectionDialog';
 import CommentThread from '@/components/tasks/CommentThread';
 import ActivityFeed from '@/components/tasks/ActivityFeed';
 import { format } from 'date-fns';
+import { getBackwardTransition } from '@/lib/workflow/transitions';
 
 // Workflow order: copy → design → video → sent_to_client → approved → live
 // Stages can skip ahead when not required (no-video task: design_wip → sent_to_client)
@@ -23,13 +25,6 @@ const VALID_TRANSITIONS = {
   live:           [],
 };
 
-const BACKWARD_TRANSITIONS = {
-  design_wip:     'copy_wip',
-  video_wip:      'design_wip',
-  sent_to_client: 'video_wip',
-  approved:       'sent_to_client',
-};
-
 const STATUS_LABELS = {
   copy_wip:       'Copy WIP',
   design_wip:     'Design WIP',
@@ -41,13 +36,24 @@ const STATUS_LABELS = {
 };
 
 const STATUS_COLORS = {
-  copy_wip:       { bg: '#faf5ff', color: '#7c3aed', border: '#e9d5ff' },
-  design_wip:     { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' },
-  video_wip:      { bg: '#f5f3ff', color: '#6d28d9', border: '#ddd6fe' },
-  sent_to_client: { bg: '#ecfeff', color: '#0e7490', border: '#a5f3fc' },
-  approved:       { bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0' },
-  rejected:       { bg: '#fef2f2', color: '#dc2626', border: '#fecaca' },
-  live:           { bg: '#ecfdf5', color: '#047857', border: '#6ee7b7' },
+  copy_wip:       { bg: 'color-mix(in oklch, var(--primary) 10%, transparent)', color: 'var(--primary)', border: 'color-mix(in oklch, var(--primary) 30%, transparent)' },
+  design_wip:     { bg: 'color-mix(in oklch, var(--primary) 10%, transparent)', color: 'var(--primary)', border: 'color-mix(in oklch, var(--primary) 30%, transparent)' },
+  video_wip:      { bg: 'color-mix(in oklch, var(--primary) 10%, transparent)', color: 'var(--primary)', border: 'color-mix(in oklch, var(--primary) 30%, transparent)' },
+  sent_to_client: { bg: 'color-mix(in oklch, var(--warning) 10%, transparent)', color: 'var(--warning)', border: 'color-mix(in oklch, var(--warning) 30%, transparent)' },
+  approved:       { bg: 'color-mix(in oklch, var(--success) 10%, transparent)', color: 'var(--success)', border: 'color-mix(in oklch, var(--success) 30%, transparent)' },
+  rejected:       { bg: 'color-mix(in oklch, var(--destructive) 10%, transparent)', color: 'var(--destructive)', border: 'color-mix(in oklch, var(--destructive) 30%, transparent)' },
+  live:           { bg: 'color-mix(in oklch, var(--success) 10%, transparent)', color: 'var(--success)', border: 'color-mix(in oklch, var(--success) 30%, transparent)' },
+};
+
+// Tones map to .chip[data-tone] — WIP stages read as sage `primary`.
+const STATUS_CHIP_TONE = {
+  copy_wip:       'primary',
+  design_wip:     'primary',
+  video_wip:      'primary',
+  sent_to_client: 'warning',
+  approved:       'success',
+  rejected:       'destructive',
+  live:           'success',
 };
 
 const PRIORITY_OPTIONS = ['high', 'medium', 'low'];
@@ -64,30 +70,31 @@ function LiveDateDialog({ onConfirm, onCancel, loading }) {
   const [liveDate, setLiveDate] = useState('');
   return (
     <Portal>
-      <div style={backdropStyle} onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-        <div style={{ ...modalBoxStyle, maxWidth: '380px' }} onClick={(e) => e.stopPropagation()}>
-          <div style={modalHeaderStyle}>
+      <div className="modal-backdrop" style={{ zIndex: 100001 }} onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
+        <div className="modal" style={{ maxWidth: 380 }} onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: 32, height: 32, borderRadius: 10, background: '#f0fdf4', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Calendar size={16} color="#15803d" />
+              <div style={{ width: 32, height: 32, borderRadius: 10, background: 'color-mix(in oklch, var(--success) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--success) 30%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Calendar size={16} color="var(--success)" />
               </div>
               <div>
-                <p style={{ fontSize: 14, fontWeight: 600, color: '#111827', margin: 0 }}>Set Live Date</p>
-                <p style={{ fontSize: 11, color: '#9ca3af', margin: 0 }}>When will this go live?</p>
+                <p className="editorial-h2 text-foreground" style={{ margin: 0, fontSize: '1.05rem' }}>Set Live Date</p>
+                <p style={{ fontSize: 11, color: 'var(--muted-foreground)', margin: 0 }}>When will this go live?</p>
               </div>
             </div>
-            <button onClick={onCancel} style={iconBtnStyle}><X size={16} /></button>
+            <button onClick={onCancel} className="btn-ghost" style={iconBtnStyle}><X size={16} /></button>
           </div>
           <div style={{ padding: '20px 24px' }}>
-            <label style={labelStyle}>Live Date <span style={{ color: '#9ca3af', fontWeight: 400 }}>(leave blank for today)</span></label>
-            <input type="date" value={liveDate} onChange={(e) => setLiveDate(e.target.value)} style={inputStyle} />
+            <label className="label">Live Date <span style={{ color: 'var(--muted-foreground)', fontWeight: 400, textTransform: 'none', letterSpacing: 'normal' }}>(leave blank for today)</span></label>
+            <input type="date" value={liveDate} onChange={(e) => setLiveDate(e.target.value)} className="input" />
           </div>
-          <div style={modalFooterStyle}>
-            <button onClick={onCancel} style={cancelBtnStyle}>Cancel</button>
+          <div className="modal-footer">
+            <button onClick={onCancel} className="btn-ghost">Cancel</button>
             <button
               onClick={() => onConfirm(liveDate || null)}
               disabled={loading}
-              style={{ ...submitBtnStyle, background: '#059669' }}
+              className="btn-primary"
+              style={{ background: 'var(--success)', color: 'var(--success-foreground)' }}
             >
               {loading ? 'Going live...' : 'Mark as Live'}
             </button>
@@ -111,14 +118,14 @@ function RouteFromRejectedDialog({ task, onConfirm, onClose, loading }) {
 
   return (
     <Portal>
-      <div style={{ ...backdropStyle, zIndex: 100001 }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-        <div style={{ ...modalBoxStyle, maxWidth: '380px' }} onClick={(e) => e.stopPropagation()}>
-          <div style={modalHeaderStyle}>
-            <p style={{ fontSize: 14, fontWeight: 600, color: '#111827', margin: 0 }}>Route for Revision</p>
-            <button onClick={onClose} style={iconBtnStyle}><X size={16} /></button>
+      <div className="modal-backdrop" style={{ zIndex: 100001 }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+        <div className="modal" style={{ maxWidth: 380 }} onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <p className="editorial-h2 text-foreground" style={{ margin: 0, fontSize: '1.05rem' }}>Route for Revision</p>
+            <button onClick={onClose} className="btn-ghost" style={iconBtnStyle}><X size={16} /></button>
           </div>
           <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <label style={labelStyle}>Route back to</label>
+            <label className="label">Route back to</label>
             {options.map((opt) => (
               <label
                 key={opt.value}
@@ -129,8 +136,8 @@ function RouteFromRejectedDialog({ task, onConfirm, onClose, loading }) {
                   gap:          '12px',
                   padding:      '12px',
                   borderRadius: '10px',
-                  border:       `1px solid ${routeTo === opt.value ? '#c4b5fd' : '#e5e7eb'}`,
-                  background:   routeTo === opt.value ? '#faf5ff' : '#ffffff',
+                  border:       `1px solid ${routeTo === opt.value ? 'color-mix(in oklch, var(--primary) 40%, transparent)' : 'var(--border)'}`,
+                  background:   routeTo === opt.value ? 'color-mix(in oklch, var(--primary) 10%, transparent)' : 'var(--card)',
                   cursor:       'pointer',
                   transition:   'all 0.15s ease',
                 }}
@@ -138,22 +145,22 @@ function RouteFromRejectedDialog({ task, onConfirm, onClose, loading }) {
                 <div style={{
                   width:        16, height: 16,
                   borderRadius: '50%',
-                  border:       `2px solid ${routeTo === opt.value ? '#7c3aed' : '#d1d5db'}`,
-                  background:   routeTo === opt.value ? '#7c3aed' : 'transparent',
+                  border:       `2px solid ${routeTo === opt.value ? 'var(--primary)' : 'var(--border)'}`,
+                  background:   routeTo === opt.value ? 'var(--primary)' : 'transparent',
                   display:      'flex', alignItems: 'center', justifyContent: 'center',
                   flexShrink:   0,
                 }}>
-                  {routeTo === opt.value && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />}
+                  {routeTo === opt.value && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--primary-foreground)' }} />}
                 </div>
-                <span style={{ fontSize: 13, fontWeight: 500, color: routeTo === opt.value ? '#6d28d9' : '#374151' }}>
+                <span style={{ fontSize: 13, fontWeight: 500, color: routeTo === opt.value ? 'var(--primary)' : 'var(--foreground)' }}>
                   {opt.label}
                 </span>
               </label>
             ))}
           </div>
-          <div style={modalFooterStyle}>
-            <button onClick={onClose} style={cancelBtnStyle}>Cancel</button>
-            <button onClick={() => onConfirm(routeTo)} disabled={loading} style={submitBtnStyle}>
+          <div className="modal-footer">
+            <button onClick={onClose} className="btn-ghost">Cancel</button>
+            <button onClick={() => onConfirm(routeTo)} disabled={loading} className="btn-primary">
               {loading ? 'Routing...' : 'Route for Revision'}
             </button>
           </div>
@@ -173,6 +180,7 @@ export default function TaskDetailModal({
   onUpdated,
   onDeleted,
 }) {
+  const reduce = useReducedMotion();
   const [task, setTask]               = useState(initialTask);
   const [activeTab, setActiveTab]     = useState('details');
   const [editing, setEditing]         = useState(false);
@@ -193,14 +201,15 @@ export default function TaskDetailModal({
   const [selectedStatus, setSelectedStatus]     = useState('');
   const [error, setError]                       = useState('');
 
-  const canManage  = ['admin', 'account_manager'].includes(currentUserRole);
+  const canManage  = ['superadmin', 'admin', 'account_manager'].includes(currentUserRole);
   const isLive     = task.status === 'live';
   const isRejected = task.status === 'rejected';
 
   const forwardOptions = VALID_TRANSITIONS[task.status] || [];
-  const backwardTarget = BACKWARD_TRANSITIONS[task.status] || null;
+  const backwardTarget = getBackwardTransition(task.status, task);
   const dropdownOptions = forwardOptions.filter((s) => s !== 'rejected');
-  const statusStyle     = STATUS_COLORS[task.status] || { bg: '#f9fafb', color: '#6b7280', border: '#e5e7eb' };
+  const statusStyle     = STATUS_COLORS[task.status] || { bg: 'var(--muted)', color: 'var(--muted-foreground)', border: 'var(--border)' };
+  const statusTone      = STATUS_CHIP_TONE[task.status];
 
   function toggleAssignee(id) {
     setEditForm((p) => ({
@@ -262,39 +271,282 @@ export default function TaskDetailModal({
     } catch (err) { setError(err.message); }
   }
 
+  // ── Tab panel contents (rendered inside the crossfade wrapper) ────────────
+  function renderTabPanel() {
+    if (activeTab === 'comments') {
+      return (
+        <div style={{ minHeight: 360 }}>
+          <CommentThread
+            taskId={task._id}
+            currentUserId={currentUserId}
+            currentUserRole={currentUserRole}
+            brandMembers={brandMembers}
+          />
+        </div>
+      );
+    }
+
+    if (activeTab === 'activity') {
+      return <ActivityFeed taskId={task._id} />;
+    }
+
+    // DETAILS TAB
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        {/* Description */}
+        <div>
+          <label className="label">Description</label>
+          {editing ? (
+            <textarea
+              value={editForm.description}
+              onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+              rows={3}
+              className="input"
+              style={{ resize: 'none' }}
+            />
+          ) : (
+            <p style={{ fontSize: 13, color: task.description ? 'var(--foreground)' : 'var(--muted-foreground)', fontStyle: task.description ? 'normal' : 'italic', margin: 0, lineHeight: 1.6 }}>
+              {task.description || 'No description'}
+            </p>
+          )}
+        </div>
+
+        {/* Meta grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          {/* Priority */}
+          <div>
+            <label className="label">Priority</label>
+            {editing ? (
+              <select value={editForm.priority} onChange={(e) => setEditForm({ ...editForm, priority: e.target.value })} className="input">
+                {PRIORITY_OPTIONS.map((p) => <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>)}
+              </select>
+            ) : <PriorityBadge priority={task.priority} />}
+          </div>
+
+          {/* Content Type */}
+          <div>
+            <label className="label">Content Type</label>
+            <span style={{ fontSize: 13, color: task.type ? 'var(--foreground)' : 'var(--muted-foreground)', fontStyle: task.type ? 'normal' : 'italic' }}>
+              {task.type || 'Not set'}
+            </span>
+          </div>
+
+          {/* Internal deadline */}
+          <div>
+            <label className="label">Internal Deadline</label>
+            {editing ? (
+              <input type="date" value={editForm.internalDeadline} onChange={(e) => setEditForm({ ...editForm, internalDeadline: e.target.value })} className="input" />
+            ) : <DeadlineBadge date={task.internalDeadline} label="Int" closed={isLive} />}
+          </div>
+
+          {/* External deadline */}
+          <div>
+            <label className="label">External Deadline</label>
+            {editing ? (
+              <input type="date" value={editForm.externalDeadline} onChange={(e) => setEditForm({ ...editForm, externalDeadline: e.target.value })} className="input" />
+            ) : <DeadlineBadge date={task.externalDeadline} label="Ext" closed={isLive} />}
+          </div>
+
+          {/* Live date */}
+          {task.liveDate && (
+            <div>
+              <label className="label">Live Date</label>
+              <span className="chip" data-tone="success">
+                <Calendar size={10} />
+                {format(new Date(task.liveDate), 'dd MMM yyyy')}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Assignees */}
+        <div>
+          <label className="label">Assignees</label>
+          {editing ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {brandMembers.map((m) => {
+                const id   = m.userId?._id || m.userId;
+                const name = m.userId?.name || 'Unknown';
+                const initials = name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
+                const sel  = editForm.assignees.includes(id);
+                return (
+                  <button key={id} type="button" onClick={() => toggleAssignee(id)} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    padding: '6px 12px', borderRadius: 8,
+                    border: `1px solid ${sel ? 'color-mix(in oklch, var(--primary) 40%, transparent)' : 'var(--border)'}`,
+                    background: sel ? 'color-mix(in oklch, var(--primary) 10%, transparent)' : 'var(--card)',
+                    color: sel ? 'var(--primary)' : 'var(--foreground)',
+                    fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+                  }}>
+                    <span style={{ width: 22, height: 22, borderRadius: '50%', background: sel ? 'var(--primary)' : 'var(--muted)', color: sel ? 'var(--primary-foreground)' : 'var(--muted-foreground)', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      {initials}
+                    </span>
+                    {name}
+                    {sel && <Check size={12} />}
+                  </button>
+                );
+              })}
+            </div>
+          ) : task.assignees?.length > 0 ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {task.assignees.map((user) => {
+                const name = user.name || '';
+                const initials = name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
+                return (
+                  <div key={user._id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 8, background: 'var(--muted)', border: '1px solid var(--border)' }}>
+                    <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'color-mix(in oklch, var(--primary) 10%, transparent)', color: 'var(--primary)', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{initials}</span>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--foreground)' }}>{name}</span>
+                    <span style={{ fontSize: 11, color: 'var(--muted-foreground)', textTransform: 'capitalize' }}>{user.role?.replace(/_/g, ' ')}</span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : <span style={{ fontSize: 13, color: 'var(--muted-foreground)', fontStyle: 'italic' }}>No assignees</span>}
+        </div>
+
+        {/* Edit save/cancel */}
+        {editing && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+            <button onClick={() => setEditing(false)} className="btn-ghost">Cancel</button>
+            <button onClick={saveEdits} disabled={saving} className="btn-primary">
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        )}
+
+        {error && <p style={{ fontSize: 13, color: 'var(--destructive)', background: 'color-mix(in oklch, var(--destructive) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--destructive) 30%, transparent)', borderRadius: 8, padding: '10px 14px', margin: 0 }}>{error}</p>}
+
+        {/* ── Move Task ── */}
+        {!editing && !isLive && (
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 20 }}>
+            <label className="label" style={{ marginBottom: 12 }}>Move Task</label>
+            {isRejected ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 10, background: 'color-mix(in oklch, var(--destructive) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--destructive) 30%, transparent)' }}>
+                  <RotateCcw size={15} color="var(--destructive)" style={{ flexShrink: 0 }} />
+                  <p style={{ fontSize: 12, color: 'var(--destructive)', margin: 0 }}>
+                    This task was rejected. Route it back for revision to continue.
+                  </p>
+                </div>
+                {canManage && (
+                  <button onClick={() => setShowRouteDialog(true)} disabled={transitioning} className="btn-primary" style={{ justifyContent: 'center' }}>
+                    <RotateCcw size={13} />
+                    Route for Revision
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  {/* Back button */}
+                  {backwardTarget && canManage && (
+                    <button
+                      onClick={() => moveToStatus(backwardTarget)}
+                      disabled={transitioning}
+                      title={`Back to ${STATUS_LABELS[backwardTarget]}`}
+                      className="btn-ghost"
+                    >
+                      <ChevronLeft size={13} />
+                      {STATUS_LABELS[backwardTarget]}
+                    </button>
+                  )}
+
+                  {/* Dropdown when multiple forward options */}
+                  {dropdownOptions.length > 1 && (
+                    <select
+                      value={selectedStatus}
+                      onChange={(e) => setSelectedStatus(e.target.value)}
+                      className="input"
+                      style={{ flex: 1, minWidth: 160 }}
+                    >
+                      <option value="">Select next stage...</option>
+                      {dropdownOptions.map((s) => (
+                        <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                      ))}
+                    </select>
+                  )}
+
+                  {/* Forward button */}
+                  {dropdownOptions.length > 0 && (
+                    <button
+                      onClick={handleForward}
+                      disabled={transitioning || (dropdownOptions.length > 1 && !selectedStatus)}
+                      className="btn-primary"
+                      style={{
+                        border: '1px solid color-mix(in oklch, var(--primary) 40%, transparent)',
+                        background: 'color-mix(in oklch, var(--primary) 10%, transparent)',
+                        color: 'var(--primary)',
+                      }}
+                    >
+                      {dropdownOptions.length === 1
+                        ? STATUS_LABELS[dropdownOptions[0]]
+                        : (selectedStatus ? STATUS_LABELS[selectedStatus] : 'Move Forward')
+                      }
+                      <ChevronRight size={13} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Reject button */}
+                {forwardOptions.includes('rejected') && canManage && (
+                  <button
+                    onClick={() => setShowRejectDialog(true)}
+                    disabled={transitioning}
+                    className="btn-danger"
+                    style={{ alignSelf: 'flex-start' }}
+                  >
+                    <X size={13} />
+                    Reject Task
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {isLive && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', borderRadius: 10, background: 'color-mix(in oklch, var(--success) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--success) 30%, transparent)', fontSize: 13, color: 'var(--success)' }}>
+            <Check size={15} />
+            Task is live and closed.
+            {task.liveDate && <span style={{ fontSize: 11, opacity: 0.7 }}>· Live {format(new Date(task.liveDate), 'dd MMM yyyy')}</span>}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <>
       <Portal>
-        <div style={backdropStyle} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-          <div style={{ ...modalBoxStyle, maxWidth: '640px', maxHeight: '88vh' }} onClick={(e) => e.stopPropagation()}>
-            {/* Header */}
-            <div style={{ ...modalHeaderStyle, alignItems: 'flex-start' }}>
+        <div className="modal-backdrop" style={{ zIndex: 100000 }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+          <div className="modal" style={{ maxWidth: 640, maxHeight: '88vh' }} onClick={(e) => e.stopPropagation()}>
+            {/* Hero header */}
+            <div className="modal-header" style={{ alignItems: 'flex-start' }}>
               <div style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
                 {editing ? (
                   <input
                     value={editForm.title}
                     onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                    style={{ ...inputStyle, fontSize: 15, fontWeight: 600 }}
+                    className="input"
+                    style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}
                   />
                 ) : (
-                  <p style={{ fontSize: 15, fontWeight: 600, color: '#111827', margin: '0 0 8px 0', lineHeight: 1.4 }}>
+                  <p className="editorial-h2 text-foreground" style={{ margin: '0 0 10px 0' }}>
                     {task.title}
                   </p>
                 )}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <span style={{
-                    display: 'inline-flex', alignItems: 'center',
-                    padding: '2px 10px', borderRadius: 99, fontSize: 11, fontWeight: 600,
-                    background: statusStyle.bg, color: statusStyle.color, border: `1px solid ${statusStyle.border}`,
-                  }}>
+                  <span
+                    className="chip"
+                    data-tone={statusTone === 'primary' ? 'primary' : undefined}
+                    style={statusTone && statusTone !== 'primary'
+                      ? { color: statusStyle.color, borderColor: statusStyle.border, background: statusStyle.bg }
+                      : undefined}
+                  >
                     {STATUS_LABELS[task.status]}
                   </span>
                   {task.revisionCount > 0 && (
-                    <span style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 4,
-                      padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 500,
-                      background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a',
-                    }}>
+                    <span className="chip" style={{ color: 'var(--warning)', borderColor: 'color-mix(in oklch, var(--warning) 30%, transparent)', background: 'color-mix(in oklch, var(--warning) 10%, transparent)' }}>
                       <RotateCcw size={10} />
                       Rev {task.revisionCount}
                     </span>
@@ -303,307 +555,62 @@ export default function TaskDetailModal({
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
                 {canManage && !isLive && (
-                  <button onClick={() => setEditing(!editing)} style={iconBtnStyle} title="Edit">
+                  <button onClick={() => setEditing(!editing)} className="btn-ghost" style={iconBtnStyle} title="Edit">
                     <Edit2 size={15} />
                   </button>
                 )}
                 {canManage && (
                   <button
                     onClick={() => setDeleteConfirm(true)}
-                    style={{ ...iconBtnStyle }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = '#fef2f2'; e.currentTarget.style.color = '#dc2626'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#9ca3af'; }}
+                    className="btn-ghost"
+                    style={iconBtnStyle}
                     title="Delete"
                   >
                     <Trash2 size={15} />
                   </button>
                 )}
-                <button onClick={onClose} style={iconBtnStyle}><X size={15} /></button>
+                <button onClick={onClose} className="btn-ghost" style={iconBtnStyle} title="Close"><X size={15} /></button>
               </div>
             </div>
 
-            {/* Tabs */}
-            <div style={{ display: 'flex', borderBottom: '1px solid #f3f4f6', padding: '0 24px', flexShrink: 0 }}>
+            {/* Tabs — segmented control */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '12px 24px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
               {TABS.map((tab) => (
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  style={{
-                    padding:        '10px 16px',
-                    fontSize:       12,
-                    fontWeight:     600,
-                    border:         'none',
-                    borderBottom:   `2px solid ${activeTab === tab.key ? '#4f46e5' : 'transparent'}`,
-                    background:     'transparent',
-                    color:          activeTab === tab.key ? '#4f46e5' : '#9ca3af',
-                    cursor:         'pointer',
-                    fontFamily:     'inherit',
-                    marginBottom:   '-1px',
-                    transition:     'color 0.15s ease',
-                  }}
+                  className="chip"
+                  data-active={activeTab === tab.key ? 'true' : undefined}
+                  style={{ position: 'relative', cursor: 'pointer', fontFamily: 'inherit', padding: '5px 14px' }}
                 >
                   {tab.label}
+                  {activeTab === tab.key && (
+                    <motion.span
+                      layoutId="taskTabUnderline"
+                      style={{
+                        position: 'absolute', left: 12, right: 12, bottom: -13, height: 2,
+                        borderRadius: 2, background: 'var(--foreground)',
+                      }}
+                      transition={reduce ? { duration: 0 } : { duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                    />
+                  )}
                 </button>
               ))}
             </div>
 
-            {/* Body */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
-              {/* DETAILS TAB */}
-              {activeTab === 'details' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  {/* Description */}
-                  <div>
-                    <label style={labelStyle}>Description</label>
-                    {editing ? (
-                      <textarea
-                        value={editForm.description}
-                        onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                        rows={3}
-                        style={{ ...inputStyle, resize: 'none', fontFamily: 'inherit' }}
-                      />
-                    ) : (
-                      <p style={{ fontSize: 13, color: task.description ? '#374151' : '#9ca3af', fontStyle: task.description ? 'normal' : 'italic', margin: 0, lineHeight: 1.6 }}>
-                        {task.description || 'No description'}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Meta grid */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                    {/* Priority */}
-                    <div>
-                      <label style={labelStyle}>Priority</label>
-                      {editing ? (
-                        <select value={editForm.priority} onChange={(e) => setEditForm({ ...editForm, priority: e.target.value })} style={inputStyle}>
-                          {PRIORITY_OPTIONS.map((p) => <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>)}
-                        </select>
-                      ) : <PriorityBadge priority={task.priority} />}
-                    </div>
-
-                    {/* Content Type */}
-                    <div>
-                      <label style={labelStyle}>Content Type</label>
-                      <span style={{ fontSize: 13, color: task.type ? '#374151' : '#9ca3af', fontStyle: task.type ? 'normal' : 'italic' }}>
-                        {task.type || 'Not set'}
-                      </span>
-                    </div>
-
-                    {/* Internal deadline */}
-                    <div>
-                      <label style={labelStyle}>Internal Deadline</label>
-                      {editing ? (
-                        <input type="date" value={editForm.internalDeadline} onChange={(e) => setEditForm({ ...editForm, internalDeadline: e.target.value })} style={inputStyle} />
-                      ) : <DeadlineBadge date={task.internalDeadline} label="Int" closed={isLive} />}
-                    </div>
-
-                    {/* External deadline */}
-                    <div>
-                      <label style={labelStyle}>External Deadline</label>
-                      {editing ? (
-                        <input type="date" value={editForm.externalDeadline} onChange={(e) => setEditForm({ ...editForm, externalDeadline: e.target.value })} style={inputStyle} />
-                      ) : <DeadlineBadge date={task.externalDeadline} label="Ext" closed={isLive} />}
-                    </div>
-
-                    {/* Live date */}
-                    {task.liveDate && (
-                      <div>
-                        <label style={labelStyle}>Live Date</label>
-                        <span style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 5,
-                          padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 500,
-                          background: '#ecfdf5', color: '#047857', border: '1px solid #6ee7b7',
-                        }}>
-                          <Calendar size={10} />
-                          {format(new Date(task.liveDate), 'dd MMM yyyy')}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Assignees */}
-                  <div>
-                    <label style={labelStyle}>Assignees</label>
-                    {editing ? (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                        {brandMembers.map((m) => {
-                          const id   = m.userId?._id || m.userId;
-                          const name = m.userId?.name || 'Unknown';
-                          const initials = name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
-                          const sel  = editForm.assignees.includes(id);
-                          return (
-                            <button key={id} type="button" onClick={() => toggleAssignee(id)} style={{
-                              display: 'inline-flex', alignItems: 'center', gap: 8,
-                              padding: '6px 12px', borderRadius: 8,
-                              border: `1px solid ${sel ? '#a5b4fc' : '#e5e7eb'}`,
-                              background: sel ? '#eef2ff' : '#fff',
-                              color: sel ? '#4338ca' : '#374151',
-                              fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
-                            }}>
-                              <span style={{ width: 22, height: 22, borderRadius: '50%', background: sel ? '#4f46e5' : '#f3f4f6', color: sel ? '#fff' : '#6b7280', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                {initials}
-                              </span>
-                              {name}
-                              {sel && <Check size={12} />}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : task.assignees?.length > 0 ? (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                        {task.assignees.map((user) => {
-                          const name = user.name || '';
-                          const initials = name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
-                          return (
-                            <div key={user._id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 8, background: '#f9fafb', border: '1px solid #e5e7eb' }}>
-                              <span style={{ width: 22, height: 22, borderRadius: '50%', background: '#e0e7ff', color: '#4f46e5', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{initials}</span>
-                              <span style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>{name}</span>
-                              <span style={{ fontSize: 11, color: '#9ca3af', textTransform: 'capitalize' }}>{user.role?.replace(/_/g, ' ')}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : <span style={{ fontSize: 13, color: '#9ca3af', fontStyle: 'italic' }}>No assignees</span>}
-                  </div>
-
-                  {/* Edit save/cancel */}
-                  {editing && (
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-                      <button onClick={() => setEditing(false)} style={cancelBtnStyle}>Cancel</button>
-                      <button onClick={saveEdits} disabled={saving} style={submitBtnStyle}>
-                        {saving ? 'Saving...' : 'Save Changes'}
-                      </button>
-                    </div>
-                  )}
-
-                  {error && <p style={{ fontSize: 13, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 14px', margin: 0 }}>{error}</p>}
-
-                  {/* ── Move Task ── */}
-                  {!editing && !isLive && (
-                    <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: 20 }}>
-                      <label style={{ ...labelStyle, marginBottom: 12 }}>Move Task</label>
-                      {isRejected ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 10, background: '#fef2f2', border: '1px solid #fecaca' }}>
-                            <RotateCcw size={15} color="#dc2626" style={{ flexShrink: 0 }} />
-                            <p style={{ fontSize: 12, color: '#dc2626', margin: 0 }}>
-                              This task was rejected. Route it back for revision to continue.
-                            </p>
-                          </div>
-                          {canManage && (
-                            <button onClick={() => setShowRouteDialog(true)} disabled={transitioning} style={{ ...submitBtnStyle, justifyContent: 'center', opacity: transitioning ? 0.5 : 1 }}>
-                              <RotateCcw size={13} />
-                              Route for Revision
-                            </button>
-                          )}
-                        </div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                            {/* Back button */}
-                            {backwardTarget && canManage && (
-                              <button
-                                onClick={() => moveToStatus(backwardTarget)}
-                                disabled={transitioning}
-                                title={`Back to ${STATUS_LABELS[backwardTarget]}`}
-                                style={{
-                                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                                  padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 500,
-                                  border: '1px solid #e5e7eb', background: '#f9fafb', color: '#6b7280',
-                                  cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s ease',
-                                  opacity: transitioning ? 0.5 : 1,
-                                }}
-                              >
-                                <ChevronLeft size={13} />
-                                {STATUS_LABELS[backwardTarget]}
-                              </button>
-                            )}
-
-                            {/* Dropdown when multiple forward options */}
-                            {dropdownOptions.length > 1 && (
-                              <select
-                                value={selectedStatus}
-                                onChange={(e) => setSelectedStatus(e.target.value)}
-                                style={{ ...inputStyle, flex: 1, minWidth: 160 }}
-                              >
-                                <option value="">Select next stage...</option>
-                                {dropdownOptions.map((s) => (
-                                  <option key={s} value={s}>{STATUS_LABELS[s]}</option>
-                                ))}
-                              </select>
-                            )}
-
-                            {/* Forward button */}
-                            {dropdownOptions.length > 0 && (
-                              <button
-                                onClick={handleForward}
-                                disabled={transitioning || (dropdownOptions.length > 1 && !selectedStatus)}
-                                style={{
-                                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                                  padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 500,
-                                  border: '1px solid #c4b5fd', background: '#faf5ff', color: '#6d28d9',
-                                  cursor: (transitioning || (dropdownOptions.length > 1 && !selectedStatus)) ? 'not-allowed' : 'pointer',
-                                  fontFamily: 'inherit', transition: 'all 0.15s ease',
-                                  opacity: (transitioning || (dropdownOptions.length > 1 && !selectedStatus)) ? 0.5 : 1,
-                                }}
-                              >
-                                {dropdownOptions.length === 1
-                                  ? STATUS_LABELS[dropdownOptions[0]]
-                                  : (selectedStatus ? STATUS_LABELS[selectedStatus] : 'Move Forward')
-                                }
-                                <ChevronRight size={13} />
-                              </button>
-                            )}
-                          </div>
-
-                          {/* Reject button */}
-                          {forwardOptions.includes('rejected') && canManage && (
-                            <button
-                              onClick={() => setShowRejectDialog(true)}
-                              disabled={transitioning}
-                              style={{
-                                display: 'inline-flex', alignItems: 'center', gap: 6,
-                                padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 500,
-                                border: '1px solid #fecaca', background: '#fef2f2', color: '#dc2626',
-                                cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s ease',
-                                opacity: transitioning ? 0.5 : 1, alignSelf: 'flex-start',
-                              }}
-                            >
-                              <X size={13} />
-                              Reject Task
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {isLive && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', borderRadius: 10, background: '#ecfdf5', border: '1px solid #6ee7b7', fontSize: 13, color: '#047857' }}>
-                      <Check size={15} />
-                      Task is live and closed.
-                      {task.liveDate && <span style={{ fontSize: 11, opacity: 0.7 }}>· Live {format(new Date(task.liveDate), 'dd MMM yyyy')}</span>}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* COMMENTS TAB */}
-              {activeTab === 'comments' && (
-                <div style={{ minHeight: 360 }}>
-                  <CommentThread
-                    taskId={task._id}
-                    currentUserId={currentUserId}
-                    currentUserRole={currentUserRole}
-                    brandMembers={brandMembers}
-                  />
-                </div>
-              )}
-
-              {/* ACTIVITY TAB */}
-              {activeTab === 'activity' && (
-                <ActivityFeed taskId={task._id} />
-              )}
+            {/* Body — crossfade between tab panels */}
+            <div className="modal-body">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab}
+                  initial={reduce ? false : { opacity: 0, x: 6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={reduce ? {} : { opacity: 0, x: -6 }}
+                  transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+                >
+                  {renderTabPanel()}
+                </motion.div>
+              </AnimatePresence>
             </div>
           </div>
         </div>
@@ -612,16 +619,16 @@ export default function TaskDetailModal({
       {/* Delete confirm */}
       {deleteConfirm && (
         <Portal>
-          <div style={{ ...backdropStyle, zIndex: 100001 }}>
-            <div style={{ ...modalBoxStyle, maxWidth: 360 }}>
+          <div className="modal-backdrop" style={{ zIndex: 100001 }} onClick={(e) => { if (e.target === e.currentTarget) setDeleteConfirm(false); }}>
+            <div className="modal" style={{ maxWidth: 360 }} onClick={(e) => e.stopPropagation()}>
               <div style={{ padding: '24px' }}>
-                <p style={{ fontSize: 15, fontWeight: 600, color: '#111827', margin: '0 0 8px 0' }}>Delete Task?</p>
-                <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 20px 0', lineHeight: 1.5 }}>
+                <p className="editorial-h2 text-foreground" style={{ margin: '0 0 8px 0', fontSize: '1.05rem' }}>Delete Task?</p>
+                <p style={{ fontSize: 13, color: 'var(--muted-foreground)', margin: '0 0 20px 0', lineHeight: 1.5 }}>
                   Permanently delete <strong>&quot;{task.title}&quot;</strong>? This cannot be undone.
                 </p>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-                  <button onClick={() => setDeleteConfirm(false)} style={cancelBtnStyle}>Cancel</button>
-                  <button onClick={handleDelete} style={{ ...submitBtnStyle, background: '#dc2626' }}>Delete</button>
+                  <button onClick={() => setDeleteConfirm(false)} className="btn-ghost">Cancel</button>
+                  <button onClick={handleDelete} className="btn-primary" style={{ background: 'var(--destructive)', color: 'var(--destructive-foreground)' }}>Delete</button>
                 </div>
               </div>
             </div>
@@ -657,100 +664,10 @@ export default function TaskDetailModal({
   );
 }
 
-// ── Shared style objects ───────────────────────────────────────────────────
-const backdropStyle = {
-  position:        'fixed',
-  inset:           0,
-  backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  backdropFilter:  'blur(4px)',
-  zIndex:          100000,
-  display:         'flex',
-  alignItems:      'center',
-  justifyContent:  'center',
-  padding:         '16px',
-};
-const modalBoxStyle = {
-  background:    '#ffffff',
-  borderRadius:  '16px',
-  border:        '1px solid #e5e7eb',
-  boxShadow:     '0 25px 80px rgba(0, 0, 0, 0.18)',
-  width:         '100%',
-  display:       'flex',
-  flexDirection: 'column',
-  overflow:      'hidden',
-};
-const modalHeaderStyle = {
-  display:        'flex',
-  alignItems:     'center',
-  justifyContent: 'space-between',
-  padding:        '20px 24px',
-  borderBottom:   '1px solid #f3f4f6',
-  flexShrink:     0,
-};
-const modalFooterStyle = {
-  display:        'flex',
-  justifyContent: 'flex-end',
-  gap:            '10px',
-  padding:        '16px 24px',
-  borderTop:      '1px solid #f3f4f6',
-  flexShrink:     0,
-};
+// Icon-button sizing override layered on .btn-ghost (square, padded for icon-only).
 const iconBtnStyle = {
-  padding:        '6px',
-  borderRadius:   '8px',
-  border:         'none',
-  background:     'transparent',
-  cursor:         'pointer',
-  color:          '#9ca3af',
-  display:        'flex',
-  alignItems:     'center',
+  padding: 7,
+  width: 32,
+  height: 32,
   justifyContent: 'center',
-  transition:     'all 0.15s ease',
-};
-const labelStyle = {
-  display:      'block',
-  fontSize:     '11px',
-  fontWeight:   600,
-  color:        '#6b7280',
-  marginBottom: '6px',
-  textTransform:'uppercase',
-  letterSpacing:'0.05em',
-  fontFamily:   'inherit',
-};
-const inputStyle = {
-  width:        '100%',
-  background:   '#ffffff',
-  border:       '1px solid #e5e7eb',
-  borderRadius: '8px',
-  color:        '#111827',
-  fontSize:     '13px',
-  padding:      '8px 12px',
-  fontFamily:   'inherit',
-  boxSizing:    'border-box',
-  outline:      'none',
-};
-const cancelBtnStyle = {
-  padding:      '8px 16px',
-  fontSize:     '13px',
-  fontWeight:   500,
-  color:        '#374151',
-  background:   '#f3f4f6',
-  border:       'none',
-  borderRadius: '8px',
-  cursor:       'pointer',
-  fontFamily:   'inherit',
-};
-const submitBtnStyle = {
-  display:      'inline-flex',
-  alignItems:   'center',
-  gap:          '6px',
-  padding:      '8px 18px',
-  fontSize:     '13px',
-  fontWeight:   500,
-  color:        '#ffffff',
-  background:   '#4f46e5',
-  border:       'none',
-  borderRadius: '8px',
-  cursor:       'pointer',
-  fontFamily:   'inherit',
 };

@@ -44,22 +44,22 @@ export default function RouteRejectionDialog({ task, onClose, onRouted }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-        <div className="flex items-center justify-between p-6 border-b border-gray-100">
+      <div className="bg-card rounded-2xl shadow-xl w-full max-w-md">
+        <div className="flex items-center justify-between p-6 border-b border-border">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center">
-              <GitBranch className="w-4 h-4 text-amber-600" />
+            <div className="w-8 h-8 rounded-full bg-warning/10 flex items-center justify-center">
+              <GitBranch className="w-4 h-4 text-warning" />
             </div>
-            <h2 className="text-base font-semibold text-gray-900">Route Rejected Task</h2>
+            <h2 className="text-base font-semibold text-foreground">Route Rejected Task</h2>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="p-6 space-y-4">
-          <p className="text-sm text-gray-600">
-            Where should <span className="font-medium text-gray-900">"{task.title}"</span> go for revision?
+          <p className="text-sm text-muted-foreground">
+            Where should <span className="font-medium text-foreground">"{task.title}"</span> go for revision?
           </p>
 
           <div className="space-y-2">
@@ -68,8 +68,8 @@ export default function RouteRejectionDialog({ task, onClose, onRouted }) {
                 key={opt.value}
                 className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
                   routeBackTo === opt.value
-                    ? 'border-indigo-400 bg-indigo-50'
-                    : 'border-gray-200 hover:border-gray-300 bg-white'
+                    ? 'border-primary/40 bg-primary/10'
+                    : 'border-border hover:border-border bg-card'
                 }`}
               >
                 <input
@@ -81,27 +81,27 @@ export default function RouteRejectionDialog({ task, onClose, onRouted }) {
                   className="mt-0.5"
                 />
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{opt.label}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{opt.description}</p>
+                  <p className="text-sm font-medium text-foreground">{opt.label}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{opt.description}</p>
                 </div>
               </label>
             ))}
           </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
 
           <div className="flex justify-end gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              className="px-4 py-2 text-sm font-medium text-foreground bg-muted hover:bg-muted rounded-lg transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleRoute}
               disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors disabled:opacity-60"
+              className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-60"
             >
               {loading ? 'Routing...' : 'Route Task'}
             </button>

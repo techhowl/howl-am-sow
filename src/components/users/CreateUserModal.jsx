@@ -3,26 +3,27 @@
 'use client'
 
 import { useState } from 'react'
+import { getCreatableRoles } from '@/lib/auth/permissions'
 
-const ALL_ROLES = [
-  { value: 'admin', label: 'Admin' },
-  { value: 'account_manager', label: 'Account Manager' },
-  { value: 'designer', label: 'Designer' },
-  { value: 'copywriter', label: 'Copywriter' },
-  { value: 'motion_designer', label: 'Motion Designer' },
-  { value: 'strategist', label: 'Strategist' },
-]
-
-const AM_ROLES = ALL_ROLES.filter((r) => r.value !== 'admin')
+const ROLE_LABELS = {
+  admin: 'Admin',
+  account_manager: 'Account Manager',
+  designer: 'Designer',
+  copywriter: 'Copywriter',
+  motion_designer: 'Motion Designer',
+}
 
 export default function CreateUserModal({ onClose, onCreated, creatorRole }) {
-  const availableRoles = creatorRole === 'admin' ? ALL_ROLES : AM_ROLES
+  const availableRoles = getCreatableRoles(creatorRole).map((value) => ({
+    value,
+    label: ROLE_LABELS[value] || value,
+  }))
 
   const [form, setForm] = useState({
     name: '',
     email: '',
     password: '',
-    role: availableRoles[0].value,
+    role: availableRoles[0]?.value || '',
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -62,10 +63,10 @@ export default function CreateUserModal({ onClose, onCreated, creatorRole }) {
     width: '100%',
     padding: '10px 14px',
     borderRadius: '10px',
-    border: '1.5px solid #e8e4ff',
+    border: '1.5px solid var(--border)',
     fontSize: '14px',
-    color: '#1e1b4b',
-    background: '#faf9ff',
+    color: 'var(--foreground)',
+    background: 'var(--input)',
     outline: 'none',
     transition: 'border 0.15s',
   }
@@ -79,9 +80,9 @@ export default function CreateUserModal({ onClose, onCreated, creatorRole }) {
       <div
         className="w-full max-w-md rounded-2xl p-6"
         style={{
-          background: '#ffffff',
-          border: '1px solid #e8e4ff',
-          boxShadow: '0 24px 64px rgba(124,58,237,0.2)',
+          background: 'var(--card)',
+          border: '1px solid var(--border)',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.2)',
         }}
       >
         {/* Header */}
@@ -89,15 +90,15 @@ export default function CreateUserModal({ onClose, onCreated, creatorRole }) {
           <div className="flex items-center gap-3">
             <div
               className="w-9 h-9 rounded-xl flex items-center justify-center text-lg"
-              style={{ background: '#ede9fe' }}
+              style={{ background: 'color-mix(in oklch, var(--primary) 10%, transparent)' }}
             >
               👤
             </div>
             <div>
-              <h2 className="text-base font-bold" style={{ color: '#1e1b4b' }}>
+              <h2 className="text-base font-bold" style={{ color: 'var(--foreground)' }}>
                 Create new user
               </h2>
-              <p className="text-xs" style={{ color: '#9ca3af' }}>
+              <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
                 Share credentials with the team member
               </p>
             </div>
@@ -105,7 +106,7 @@ export default function CreateUserModal({ onClose, onCreated, creatorRole }) {
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-lg flex items-center justify-center text-lg transition-all"
-            style={{ color: '#9ca3af', background: '#f3f1ff' }}
+            style={{ color: 'var(--muted-foreground)', background: 'var(--muted)' }}
           >
             ×
           </button>
@@ -114,7 +115,7 @@ export default function CreateUserModal({ onClose, onCreated, creatorRole }) {
         <form onSubmit={handleSubmit} className="space-y-4">
 
           <div>
-            <label className="block text-xs font-medium mb-1.5" style={{ color: '#374151' }}>
+            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--foreground)' }}>
               Full name
             </label>
             <input
@@ -125,13 +126,13 @@ export default function CreateUserModal({ onClose, onCreated, creatorRole }) {
               onChange={handleChange}
               placeholder="Sara Ahmed"
               style={inputStyle}
-              onFocus={(e) => (e.target.style.border = '1.5px solid #7c3aed')}
-              onBlur={(e) => (e.target.style.border = '1.5px solid #e8e4ff')}
+              onFocus={(e) => (e.target.style.border = '1.5px solid var(--ring)')}
+              onBlur={(e) => (e.target.style.border = '1.5px solid var(--border)')}
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1.5" style={{ color: '#374151' }}>
+            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--foreground)' }}>
               Email address
             </label>
             <input
@@ -142,13 +143,13 @@ export default function CreateUserModal({ onClose, onCreated, creatorRole }) {
               onChange={handleChange}
               placeholder="sara@howl.in"
               style={inputStyle}
-              onFocus={(e) => (e.target.style.border = '1.5px solid #7c3aed')}
-              onBlur={(e) => (e.target.style.border = '1.5px solid #e8e4ff')}
+              onFocus={(e) => (e.target.style.border = '1.5px solid var(--ring)')}
+              onBlur={(e) => (e.target.style.border = '1.5px solid var(--border)')}
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1.5" style={{ color: '#374151' }}>
+            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--foreground)' }}>
               Password
             </label>
             <input
@@ -159,16 +160,16 @@ export default function CreateUserModal({ onClose, onCreated, creatorRole }) {
               onChange={handleChange}
               placeholder="Min. 8 characters"
               style={inputStyle}
-              onFocus={(e) => (e.target.style.border = '1.5px solid #7c3aed')}
-              onBlur={(e) => (e.target.style.border = '1.5px solid #e8e4ff')}
+              onFocus={(e) => (e.target.style.border = '1.5px solid var(--ring)')}
+              onBlur={(e) => (e.target.style.border = '1.5px solid var(--border)')}
             />
-            <p className="text-xs mt-1" style={{ color: '#9ca3af' }}>
+            <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>
               Share this directly with the team member.
             </p>
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1.5" style={{ color: '#374151' }}>
+            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--foreground)' }}>
               Role
             </label>
             <select
@@ -176,8 +177,8 @@ export default function CreateUserModal({ onClose, onCreated, creatorRole }) {
               value={form.role}
               onChange={handleChange}
               style={inputStyle}
-              onFocus={(e) => (e.target.style.border = '1.5px solid #7c3aed')}
-              onBlur={(e) => (e.target.style.border = '1.5px solid #e8e4ff')}
+              onFocus={(e) => (e.target.style.border = '1.5px solid var(--ring)')}
+              onBlur={(e) => (e.target.style.border = '1.5px solid var(--border)')}
             >
               {availableRoles.map((r) => (
                 <option key={r.value} value={r.value}>
@@ -190,7 +191,7 @@ export default function CreateUserModal({ onClose, onCreated, creatorRole }) {
           {error && (
             <div
               className="flex items-center gap-2 text-xs rounded-xl px-4 py-3"
-              style={{ background: '#fff1f2', border: '1px solid #fecdd3', color: '#e11d48' }}
+              style={{ background: 'color-mix(in oklch, var(--destructive) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--destructive) 30%, transparent)', color: 'var(--destructive)' }}
             >
               ⚠ {error}
             </div>
@@ -202,9 +203,9 @@ export default function CreateUserModal({ onClose, onCreated, creatorRole }) {
               onClick={onClose}
               className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-all"
               style={{
-                border: '1.5px solid #e8e4ff',
-                color: '#6b7280',
-                background: '#faf9ff',
+                border: '1.5px solid var(--border)',
+                color: 'var(--muted-foreground)',
+                background: 'var(--muted)',
               }}
             >
               Cancel
@@ -212,12 +213,12 @@ export default function CreateUserModal({ onClose, onCreated, creatorRole }) {
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white transition-all"
+              className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-all"
               style={{
-                background: loading
-                  ? '#a78bfa'
-                  : 'linear-gradient(135deg, #7c3aed, #6d28d9)',
-                boxShadow: '0 4px 12px rgba(124,58,237,0.3)',
+                color: 'var(--primary-foreground)',
+                background: 'var(--primary)',
+                opacity: loading ? 0.7 : 1,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                 border: 'none',
                 cursor: loading ? 'not-allowed' : 'pointer',
               }}

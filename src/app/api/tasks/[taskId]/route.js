@@ -59,8 +59,18 @@ export async function PATCH(request, { params }) {
     // Track newly added assignees to notify them
     const prevAssignees = task.assignees.map((a) => a.toString());
 
-    if (title !== undefined)            task.title            = title.trim();
-    if (description !== undefined)      task.description      = description.trim();
+    if (title !== undefined) {
+      if (typeof title !== 'string' || !title.trim()) {
+        return NextResponse.json({ error: 'title must be a non-empty string' }, { status: 400 });
+      }
+      task.title = title.trim();
+    }
+    if (description !== undefined) {
+      if (description !== null && typeof description !== 'string') {
+        return NextResponse.json({ error: 'description must be a string' }, { status: 400 });
+      }
+      task.description = description?.trim() || '';
+    }
     if (assignees !== undefined)        task.assignees        = assignees;
     if (priority !== undefined)         task.priority         = priority;
     if (internalDeadline !== undefined) task.internalDeadline = internalDeadline || null;

@@ -3,85 +3,111 @@
 
 import TaskCard from '@/components/tasks/TaskCard';
 import { STATUS_LABELS } from '@/lib/constants/tasks';
+import { IconMedallion } from '@/components/shared/IconMedallion';
+
+// 2-letter status glyphs for the column header medallion
+const COLUMN_ABBR = {
+  copy_wip:        'CW',
+  video_wip:       'VW',
+  design_wip:      'DW',
+  internal_review: 'IR',
+  sent_to_client:  'SC',
+  approved:        'AP',
+  rejected:        'RJ',
+  live:            'LV',
+};
 
 const COLUMN_STYLE = {
   copy_wip: {
-    dot:    'bg-purple-400',
-    header: 'text-purple-700',
-    bg:     'bg-purple-50/80',
-    empty:  'border-purple-200 text-purple-300',
+    dot:    'bg-primary',
+    header: 'text-primary',
+    bg:     'bg-primary/10',
+    empty:  'border-primary/40 text-primary',
+    tone:   '--primary',
   },
   video_wip: {
-    dot:    'bg-violet-400',
-    header: 'text-violet-700',
-    bg:     'bg-violet-50/80',
-    empty:  'border-violet-200 text-violet-300',
+    dot:    'bg-primary',
+    header: 'text-primary',
+    bg:     'bg-primary/10',
+    empty:  'border-primary/40 text-primary',
+    tone:   '--primary',
   },
   design_wip: {
-    dot:    'bg-blue-400',
-    header: 'text-blue-700',
-    bg:     'bg-blue-50/80',
-    empty:  'border-blue-200 text-blue-300',
+    dot:    'bg-primary',
+    header: 'text-primary',
+    bg:     'bg-primary/10',
+    empty:  'border-primary/40 text-primary',
+    tone:   '--primary',
   },
   internal_review: {
-    dot:    'bg-amber-400',
-    header: 'text-amber-700',
-    bg:     'bg-amber-50/80',
-    empty:  'border-amber-200 text-amber-300',
+    dot:    'bg-warning',
+    header: 'text-warning',
+    bg:     'bg-warning/10',
+    empty:  'border-warning/30 text-warning',
+    tone:   '--warning',
   },
   sent_to_client: {
-    dot:    'bg-cyan-400',
-    header: 'text-cyan-700',
-    bg:     'bg-cyan-50/80',
-    empty:  'border-cyan-200 text-cyan-300',
+    dot:    'bg-warning',
+    header: 'text-warning',
+    bg:     'bg-warning/10',
+    empty:  'border-warning/30 text-warning',
+    tone:   '--warning',
   },
   approved: {
-    dot:    'bg-green-400',
-    header: 'text-green-700',
-    bg:     'bg-green-50/80',
-    empty:  'border-green-200 text-green-300',
+    dot:    'bg-success',
+    header: 'text-success',
+    bg:     'bg-success/10',
+    empty:  'border-success/30 text-success',
+    tone:   '--success',
   },
   rejected: {
-    dot:    'bg-red-400',
-    header: 'text-red-600',
-    bg:     'bg-red-50/80',
-    empty:  'border-red-200 text-red-300',
+    dot:    'bg-destructive',
+    header: 'text-destructive',
+    bg:     'bg-destructive/10',
+    empty:  'border-destructive/30 text-destructive',
+    tone:   '--destructive',
   },
   live: {
-    dot:    'bg-emerald-500',
-    header: 'text-emerald-700',
-    bg:     'bg-emerald-50/80',
-    empty:  'border-emerald-200 text-emerald-300',
+    dot:    'bg-success',
+    header: 'text-success',
+    bg:     'bg-success/10',
+    empty:  'border-success/30 text-success',
+    tone:   '--success',
   },
 };
 
 export default function KanbanColumn({ status, tasks, onTaskClick }) {
   const style = COLUMN_STYLE[status] || {
-    dot:    'bg-gray-400',
-    header: 'text-gray-700',
-    bg:     'bg-gray-50',
-    empty:  'border-gray-200 text-gray-400',
+    dot:    'bg-muted-foreground',
+    header: 'text-foreground',
+    bg:     'bg-muted',
+    empty:  'border-border text-muted-foreground',
+    tone:   '--muted-foreground',
   };
+  const abbr = COLUMN_ABBR[status] || (STATUS_LABELS[status] || '').slice(0, 2).toUpperCase();
 
   return (
-    <div className="flex flex-col w-full">
+    <div className="flex flex-col w-full rounded-xl border border-border bg-muted/40 p-2">
       {/* Column header */}
-      <div className={`flex items-center justify-between px-3 py-2 rounded-xl mb-3 ${style.bg}`}>
+      <div className="flex items-center justify-between px-1 py-1.5 mb-2">
         <div className="flex items-center gap-2">
-          <span className={`w-2 h-2 rounded-full shrink-0 ${style.dot}`} />
+          <IconMedallion size="sm" tone={style.tone}>
+            {abbr}
+          </IconMedallion>
           <span className={`text-xs font-semibold ${style.header}`}>
             {STATUS_LABELS[status]}
           </span>
         </div>
-        <span className="text-xs font-medium text-gray-400 bg-white border border-gray-200 rounded-full px-2 py-0.5">
+        <span className="chip">
           {tasks.length}
         </span>
       </div>
+      <div className="rule-hairline mb-3" />
 
       {/* Cards */}
       <div className="flex flex-col gap-2.5 flex-1">
         {tasks.length === 0 ? (
-          <div className={`flex items-center justify-center py-8 border-2 border-dashed rounded-xl text-xs ${style.empty}`}>
+          <div className="dashed-quiet flex items-center justify-center py-8 rounded-xl text-xs text-muted-foreground">
             No tasks
           </div>
         ) : (
