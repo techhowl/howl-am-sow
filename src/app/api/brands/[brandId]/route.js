@@ -5,7 +5,7 @@ import { auth } from '@/lib/auth/auth'
 import connectDB from '@/lib/db/mongoose'
 import Brand from '@/lib/db/models/Brand'
 import BrandMember from '@/lib/db/models/BrandMember'
-import { canManageBrands } from '@/lib/auth/permissions'
+import { canManageBrands, isManagement } from '@/lib/auth/permissions'
 
 // GET /api/brands/[brandId]
 export async function GET(req, { params }) {
@@ -25,7 +25,7 @@ export async function GET(req, { params }) {
     }
 
     // Check access — AM and admin see all, others must be a member
-    if (!['superadmin', 'admin', 'account_manager'].includes(session.user.role)) {
+    if (!isManagement(session.user.role)) {
       const member = await BrandMember.findOne({
         brandId,
         userId: session.user.id,

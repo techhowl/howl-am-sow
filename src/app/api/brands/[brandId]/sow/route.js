@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth/auth'
 import connectDB from '@/lib/db/mongoose'
 import SOW from '@/lib/db/models/SOW'
 import Task from '@/lib/db/models/Task'
+import { canManageSOW } from '@/lib/auth/permissions'
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns'
 
 // ─── Sanitize incoming items on save ──────────────────────────────────
@@ -120,7 +121,7 @@ export async function POST(req, { params }) {
   try {
     const session = await auth()
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    if (!['superadmin', 'admin', 'account_manager'].includes(session.user.role)) {
+    if (!canManageSOW(session.user.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

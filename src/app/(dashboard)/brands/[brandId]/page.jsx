@@ -3,14 +3,15 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useParams, useRouter } from 'next/navigation'
+import { motion } from 'motion/react'
 import { ListChecks, BarChart3, Users as UsersIcon, Calendar, Trash2, ArrowRight } from 'lucide-react'
 import RoleBadge from '@/components/shared/RoleBadge'
 import AssignMemberPanel from '@/components/brands/AssignMemberPanel'
 import SOWTab from '@/components/brands/SOWTab'
-import { canAssignMembers } from '@/lib/auth/permissions'
-import { Skeleton } from '@/components/shared/Skeleton'
+import { canAssignMembers, canManageSOW } from '@/lib/auth/permissions'
 import { IconMedallion } from '@/components/shared/IconMedallion'
 import { MotionList, MotionItem } from '@/components/shared/motion/MotionList'
+import { AnimatedGradient } from '@/components/ui/animated-gradient-with-svg'
 import { cn } from '@/lib/utils'
 
 export default function BrandDetailPage() {
@@ -47,37 +48,33 @@ export default function BrandDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background p-8">
-        <div className="max-w-3xl mx-auto">
-          {/* Header block */}
-          <div className="surface-card p-6 mb-5">
-            <div className="flex items-center gap-4">
-              <Skeleton className="h-14 w-14 rounded-2xl shrink-0" />
-              <div>
-                <Skeleton className="h-7 w-48" />
-                <Skeleton className="mt-2 h-3 w-56" />
-              </div>
-            </div>
-          </div>
-          {/* Tab pills */}
-          <div className="flex gap-2 mb-6">
-            <Skeleton className="h-9 w-24 rounded-lg" />
-            <Skeleton className="h-9 w-28 rounded-lg" />
-            <Skeleton className="h-9 w-28 rounded-lg" />
-          </div>
-          {/* Body */}
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Skeleton className="h-24 rounded-xl" />
-            <Skeleton className="h-24 rounded-xl" />
-          </div>
-        </div>
+      <div className="min-h-screen bg-background p-8 flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex flex-col items-center"
+        >
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+            className="w-12 h-12 border-3 border-primary/30 border-t-primary rounded-full"
+          />
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="mt-4 text-sm text-muted-foreground"
+          >
+            Loading brand...
+          </motion.p>
+        </motion.div>
       </div>
     )
   }
   if (!brand) return null
 
-  const canManage   = session && canAssignMembers(session.user.role)
-  const isAdminOrAM = ['superadmin', 'admin', 'account_manager'].includes(session?.user?.role)
+  const canManage    = session && canAssignMembers(session.user.role)
+  const canEditSOW   = canManageSOW(session?.user?.role)
 
   const tabs = [
     { id: 'overview', label: 'Overview' },
@@ -104,10 +101,22 @@ export default function BrandDetailPage() {
         </button>
 
         {/* Brand header */}
-        <div className="surface-card gloss p-6 mb-5">
-          <div className="flex items-start justify-between gap-4">
+        <div className="surface-card gloss p-6 mb-5 relative overflow-hidden">
+          {/* Animated gradient using brand color */}
+          <AnimatedGradient 
+            colors={[
+              brand.color || 'oklch(0.52 0.17 300)',
+              `color-mix(in oklab, ${brand.color || 'oklch(0.52 0.17 300)'} 70%, oklch(0.60 0.12 268))`,
+              `color-mix(in oklab, ${brand.color || 'oklch(0.52 0.17 300)'} 50%, oklch(0.68 0.15 355))`
+            ]}
+            speed={0.02}
+            blur="medium"
+          />
+          <div className="absolute inset-0 bg-linear-to-br from-white/5 to-transparent pointer-events-none" />
+          
+          <div className="relative z-10 flex items-start justify-between gap-4">
             <div className="flex gap-4 items-center min-w-0">
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-display font-bold text-2xl shrink-0"
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-display font-bold text-2xl shrink-0 glass-thick border border-white/20"
                 style={{
                   background: `linear-gradient(140deg, ${brand.color || '#7c3aed'}, color-mix(in oklab, ${brand.color || '#7c3aed'} 65%, #000))`,
                   boxShadow: `0 6px 20px color-mix(in oklab, ${brand.color || '#7c3aed'} 45%, transparent)`,
@@ -126,18 +135,18 @@ export default function BrandDetailPage() {
             </div>
             {['superadmin', 'admin'].includes(session?.user?.role) && (
               <button onClick={() => setShowDelete(true)} aria-label="Delete brand"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] border border-[var(--glass-rim)] text-muted-foreground transition-colors hover:border-destructive/40 hover:text-destructive cursor-pointer"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:border-destructive/40 hover:text-destructive cursor-pointer"
               ><Trash2 size={15} aria-hidden="true" /></button>
             )}
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="glass-thin flex gap-1 mb-6 rounded-[var(--radius-lg)] p-1 w-fit">
+        <div className="glass-thin flex gap-1 mb-6 rounded-lg p-1 w-fit">
           {tabs.map((tab) => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
               className={cn(
-                'px-4 py-2 rounded-[var(--radius-md)] text-sm font-medium transition-all border-none cursor-pointer',
+                'px-4 py-2 rounded-md text-sm font-medium transition-all border-none cursor-pointer',
                 activeTab === tab.id
                   ? 'bg-primary text-primary-foreground shadow-[0_2px_12px_color-mix(in_oklab,var(--primary)_45%,transparent)]'
                   : 'text-muted-foreground bg-transparent hover:text-foreground'
@@ -170,7 +179,7 @@ export default function BrandDetailPage() {
 
         {/* SOW Tab */}
         {activeTab === 'sow' && (
-          <SOWTab brandId={brandId} canManage={isAdminOrAM} />
+          <SOWTab brandId={brandId} canManage={canEditSOW} brandName={brand.name} />
         )}
 
         {/* Members */}
@@ -187,7 +196,7 @@ export default function BrandDetailPage() {
               )}
             </div>
             {showAssign && canManage && (
-              <div className="glass-thin rounded-[var(--radius-lg)] p-4">
+              <div className="glass-thin rounded-lg p-4">
                 <p className="eyebrow mb-3">Add or remove members</p>
                 <AssignMemberPanel brandId={brandId} members={members} onMembersChange={setMembers} />
               </div>

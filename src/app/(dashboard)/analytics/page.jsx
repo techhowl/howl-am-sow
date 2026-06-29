@@ -10,12 +10,13 @@ import {
   Wallet, CheckCircle2, AlertTriangle, ArrowRight, Activity, Users,
   Filter, ArrowUpDown,
 } from 'lucide-react';
-import { Skeleton, SkeletonStatCards, SkeletonTable } from '@/components/shared/Skeleton';
+import { motion, AnimatePresence } from 'motion/react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { IconMedallion } from '@/components/shared/IconMedallion';
 import { AnimatedBar } from '@/components/shared/motion/AnimatedBar';
 import { AnimatedNumber } from '@/components/shared/motion/AnimatedNumber';
 import { BarChartCard, DonutChartCard, RadialGauge } from '@/components/charts/ChartCard';
+import { AnimatedGradient } from '@/components/ui/animated-gradient-with-svg';
 
 const HEALTH_VAR = {
   healthy:  'var(--success)',
@@ -62,18 +63,23 @@ function RevenueHero({ revenue, activeBrandsCount, totalBrandsCount, periodLabel
   const isOver  = variance > 0;
   const isZero  = scopeValue === 0;
   const varCls  = isZero ? 'text-muted-foreground' : isOver ? 'text-success' : 'text-destructive';
+  
+  // Gradient colors based on performance
+  const gradientColors = isOver 
+    ? ['oklch(0.60 0.16 165)', 'oklch(0.74 0.16 165)', 'oklch(0.52 0.17 300)'] // Success colors
+    : deliveredPercent > 50 
+    ? ['oklch(0.52 0.17 300)', 'oklch(0.60 0.12 268)', 'oklch(0.68 0.15 355)'] // Primary colors
+    : ['oklch(0.68 0.15 45)', 'oklch(0.56 0.22 20)', 'oklch(0.68 0.16 300)']; // Warning colors
 
   return (
-    <div className="surface-card shadow-md rounded-2xl p-6 relative overflow-hidden"
-         style={{ background: 'radial-gradient(120% 140% at 0% 0%, color-mix(in oklab, var(--primary) 10%, var(--card)), var(--card))' }}>
-      {/* Single subtle sage glow, gently floating behind content */}
-      <div className="float-gentle pointer-events-none absolute top-0 right-0 w-72 h-72 opacity-50"
-           style={{
-             background: 'radial-gradient(circle, color-mix(in oklab, var(--primary) 14%, transparent), transparent 70%)',
-             transform: 'translate(25%, -25%)',
-           }} />
+    <div className="surface-card shadow-md rounded-2xl p-6 relative overflow-hidden">
+      {!isZero && (
+        <AnimatedGradient colors={gradientColors} speed={0.02} blur="medium" />
+      )}
+      {/* Glass enhancement layer */}
+      <div className="absolute inset-0 bg-linear-to-br from-white/5 to-transparent pointer-events-none" />
 
-      <div className="relative">
+      <div className="relative z-10">
         <div className="flex items-start justify-between mb-6">
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -135,16 +141,42 @@ function KPIStrip({ overall, activeBrandsCount, totalBrandsCount }) {
   ];
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-      {kpis.map((k) => {
+      {kpis.map((k, index) => {
         const Icon = k.icon;
         return (
-          <div key={k.label} className="surface-card p-4 flex items-center gap-3">
+          <motion.div 
+            key={k.label} 
+            className="surface-card p-4 flex items-center gap-3 relative overflow-hidden group"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ 
+              duration: 0.4,
+              delay: index * 0.05,
+              ease: [0.22, 1, 0.36, 1]
+            }}
+            whileHover={{ y: -2 }}
+          >
+            {/* Subtle gradient on important KPIs */}
+            {(k.label === 'Tasks Achieved' && overall.achieved > 50) && (
+              <AnimatedGradient 
+                colors={['oklch(0.60 0.16 165 / 0.1)', 'oklch(0.74 0.16 165 / 0.1)', 'transparent']}
+                speed={0.02}
+                blur="heavy"
+              />
+            )}
             <IconMedallion icon={Icon} tone={k.tone} size="lg" />
-            <div className="min-w-0">
+            <div className="min-w-0 relative z-10">
               <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">{k.label}</p>
-              <p className={`text-xl font-bold ${k.accent} tabular-nums`}>{k.value}</p>
+              <motion.p 
+                className={`text-xl font-bold ${k.accent} tabular-nums`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: index * 0.05 + 0.2 }}
+              >
+                {k.value}
+              </motion.p>
             </div>
-          </div>
+          </motion.div>
         );
       })}
     </div>
@@ -180,7 +212,7 @@ function BrandCard({ brand, periodLabel }) {
 
       {/* Money row — primary signal */}
       {hasMoney ? (
-        <div className="px-5 py-4 bg-gradient-to-br from-muted to-card border-b border-border">
+        <div className="px-5 py-4 bg-linear-to-br from-muted to-card border-b border-border">
           <div className="grid grid-cols-3 gap-3">
             <div>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1">Scope</p>
@@ -422,7 +454,7 @@ export default function AnalyticsPage() {
                 <button onClick={prev} className="p-2 hover:bg-muted transition-colors border-r border-border">
                   <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground" />
                 </button>
-                <span className="text-xs font-medium text-foreground px-4 min-w-[140px] text-center">{periodLabel}</span>
+                <span className="text-xs font-medium text-foreground px-4 min-w-35 text-center">{periodLabel}</span>
                 <button onClick={next} className="p-2 hover:bg-muted transition-colors border-l border-border">
                   <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
                 </button>
@@ -433,54 +465,82 @@ export default function AnalyticsPage() {
       </div>
 
       <div className="px-6 py-6 space-y-5 max-w-7xl mx-auto">
-        {loading ? (
-          <>
-            {/* Revenue hero placeholder */}
-            <Skeleton className="h-32 w-full rounded-2xl" />
+        <AnimatePresence mode="wait">
+          {loading ? (
+            <motion.div
+              key="loading"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex flex-col items-center justify-center py-32"
+            >
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                className="w-12 h-12 border-3 border-primary/30 border-t-primary rounded-full"
+              />
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="mt-4 text-sm text-muted-foreground"
+              >
+                Loading analytics...
+              </motion.p>
+            </motion.div>
+          ) : error ? (
+            <motion.div 
+              key="error"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex items-center justify-center py-20 text-sm text-destructive"
+            >
+              {error}
+            </motion.div>
+          ) : !data ? null : (
+            <motion.div
+              key="content"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              className="space-y-5"
+            >
+              {/* Revenue Hero */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <RevenueHero
+                  revenue={data.revenueSummary}
+                  activeBrandsCount={data.activeBrandsCount}
+                  totalBrandsCount={data.totalBrandsCount}
+                  periodLabel={periodLabel}
+                />
+              </motion.div>
 
-            {/* KPI strip — 4 columns matching the real grid */}
-            <SkeletonStatCards count={4} className="grid-cols-2 md:grid-cols-4" />
+              {/* KPI Strip */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <KPIStrip
+                  overall={data.overallSOW}
+                  activeBrandsCount={data.activeBrandsCount}
+                  totalBrandsCount={data.totalBrandsCount}
+                />
+              </motion.div>
 
-            {/* Top Performers table */}
-            <div className="rounded-2xl border border-border bg-card p-5">
-              <Skeleton className="h-4 w-36" />
-              <div className="mt-4">
-                <SkeletonTable rows={6} />
-              </div>
-            </div>
-
-            {/* By-brand card grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-56 w-full rounded-2xl" />
-              ))}
-            </div>
-          </>
-        ) : error ? (
-          <div className="flex items-center justify-center py-20 text-sm text-destructive">
-            {error}
-          </div>
-        ) : !data ? null : (
-          <>
-            {/* Revenue Hero */}
-            <RevenueHero
-              revenue={data.revenueSummary}
-              activeBrandsCount={data.activeBrandsCount}
-              totalBrandsCount={data.totalBrandsCount}
-              periodLabel={periodLabel}
-            />
-
-            {/* KPI Strip */}
-            <KPIStrip
-              overall={data.overallSOW}
-              activeBrandsCount={data.activeBrandsCount}
-              totalBrandsCount={data.totalBrandsCount}
-            />
-
-            {/* Charts — health mix + delivery leaders */}
-            {data.brandStats?.length > 0 && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <DonutChartCard
+              {/* Charts — health mix + delivery leaders */}
+              {data.brandStats?.length > 0 && (
+                <motion.div 
+                  className="grid grid-cols-1 lg:grid-cols-2 gap-4"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <DonutChartCard
                   eyebrow="PORTFOLIO"
                   title="Brand health mix"
                   data={healthChart}
@@ -497,25 +557,45 @@ export default function AnalyticsPage() {
                   showValues
                   valueSuffix="%"
                   height={260}
-                />
-              </div>
-            )}
+                  />
+                </motion.div>
+              )}
 
-            {/* Top Performers — full width now */}
-            <TopPerformers teamStats={data.teamStats} />
+              {/* Top Performers — full width now */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <TopPerformers teamStats={data.teamStats} />
+              </motion.div>
 
-            {/* Brand Cards with sort/filter */}
-            {data.brandStats?.length === 0 ? (
-              <div className="surface-card rounded-2xl border border-border">
-                <div className="flex flex-col items-center text-center py-12">
-                  <span className="empty-art mb-4"><BarChart2 className="h-6 w-6" /></span>
-                  <p className="eyebrow mb-2">NOTHING YET</p>
-                  <p className="text-sm text-muted-foreground max-w-xs">No brands found. Create brands to track SOW progress.</p>
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="flex items-center justify-between flex-wrap gap-3">
+              {/* Brand Cards with sort/filter */}
+              {data.brandStats?.length === 0 ? (
+                <motion.div 
+                  className="surface-card rounded-2xl border border-border"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
+                >
+                  <div className="flex flex-col items-center text-center py-12">
+                    <span className="empty-art mb-4"><BarChart2 className="h-6 w-6" /></span>
+                    <p className="eyebrow mb-2">NOTHING YET</p>
+                    <p className="text-sm text-muted-foreground max-w-xs">No brands found. Create brands to track SOW progress.</p>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
+                >
+                  <motion.div 
+                    className="flex items-center justify-between flex-wrap gap-3"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4 }}
+                  >
                   <div>
                     <h2 className="text-sm font-semibold text-foreground">
                       By Brand
@@ -550,23 +630,45 @@ export default function AnalyticsPage() {
                       </select>
                     </div>
                   </div>
-                </div>
+                  </motion.div>
 
-                {filteredSortedBrands.length === 0 ? (
-                  <div className="text-center py-12 bg-card rounded-2xl border border-border">
-                    <p className="text-sm text-muted-foreground">No brands match the current filter.</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {filteredSortedBrands.map((brand) => (
-                      <BrandCard key={brand._id} brand={brand} periodLabel={periodLabel} />
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-          </>
-        )}
+                  {filteredSortedBrands.length === 0 ? (
+                    <motion.div 
+                      className="text-center py-12 bg-card rounded-2xl border border-border"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, delay: 0.1 }}
+                    >
+                      <p className="text-sm text-muted-foreground">No brands match the current filter.</p>
+                    </motion.div>
+                  ) : (
+                    <motion.div 
+                      className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.5, delay: 0.2 }}
+                    >
+                      {filteredSortedBrands.map((brand, index) => (
+                        <motion.div
+                          key={brand._id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ 
+                            duration: 0.4, 
+                            delay: 0.3 + index * 0.05,
+                            ease: [0.22, 1, 0.36, 1]
+                          }}
+                        >
+                          <BrandCard brand={brand} periodLabel={periodLabel} />
+                        </motion.div>
+                      ))}
+                    </motion.div>
+                  )}
+                </motion.div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

@@ -8,6 +8,10 @@ import { getCreatableRoles } from '@/lib/auth/permissions'
 const ROLE_LABELS = {
   admin: 'Admin',
   account_manager: 'Account Manager',
+  management_trainee_am: 'Management Trainee AM',
+  executive_am: 'Executive AM',
+  senior_am: 'Senior AM',
+  lead_am: 'Lead AM',
   designer: 'Designer',
   copywriter: 'Copywriter',
   motion_designer: 'Motion Designer',

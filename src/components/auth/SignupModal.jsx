@@ -3,32 +3,9 @@
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-
-const inputStyle = {
-  width: '100%',
-  padding: '9px 12px',
-  fontSize: '14px',
-  color: 'var(--foreground)',
-  background: 'var(--input)',
-  border: '1px solid var(--border)',
-  borderRadius: '8px',
-  outline: 'none',
-}
-const labelStyle = {
-  display: 'block',
-  fontSize: '13px',
-  fontWeight: '500',
-  color: 'var(--foreground)',
-  marginBottom: '6px',
-}
-function focusOn(e) {
-  e.target.style.border = '1px solid var(--ring)'
-  e.target.style.boxShadow = '0 0 0 3px color-mix(in oklab, var(--ring) 25%, transparent)'
-}
-function focusOff(e) {
-  e.target.style.border = '1px solid var(--border)'
-  e.target.style.boxShadow = 'none'
-}
+import { X, User, Mail, Lock, Eye, EyeOff } from 'lucide-react'
+import Portal from '@/components/shared/Portal'
+import { Field } from '@/components/shared/Field'
 
 export default function SignupModal({ onClose }) {
   const router = useRouter()
@@ -71,152 +48,115 @@ export default function SignupModal({ onClose }) {
   }
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(17,24,39,0.45)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '24px',
-        zIndex: 1000,
-      }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
-    >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: '400px',
-          background: 'var(--card)',
-          border: '1px solid var(--border)',
-          borderRadius: '16px',
-          padding: '28px',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-          <div>
-            <h2 className="font-display" style={{ fontSize: '20px', color: 'var(--foreground)', letterSpacing: '-0.02em', margin: 0 }}>
-              Create your account
-            </h2>
-            <p style={{ fontSize: '13px', color: 'var(--muted-foreground)', marginTop: '4px' }}>
-              Access is granted by an administrator after signup.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{ background: 'none', border: 'none', fontSize: '20px', color: 'var(--muted-foreground)', cursor: 'pointer', lineHeight: 1 }}
-            aria-label="Close"
-          >
-            ×
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-          <div>
-            <label style={labelStyle}>Full name</label>
-            <input
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Afzal Khan"
-              style={inputStyle}
-              onFocus={focusOn}
-              onBlur={focusOff}
-            />
-          </div>
-
-          <div>
-            <label style={labelStyle}>Email</label>
-            <input
-              type="email"
-              required
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="afzal@howl.in"
-              style={inputStyle}
-              onFocus={focusOn}
-              onBlur={focusOff}
-            />
-          </div>
-
-          <div>
-            <label style={labelStyle}>Password</label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                required
-                autoComplete="new-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 8 characters"
-                style={{ ...inputStyle, padding: '9px 44px 9px 12px' }}
-                onFocus={focusOn}
-                onBlur={focusOff}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: 'absolute',
-                  right: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  fontSize: '12px',
-                  color: 'var(--muted-foreground)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: 0,
-                }}
-              >
-                {showPassword ? 'Hide' : 'Show'}
-              </button>
+    <Portal>
+      <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
+        <div className="modal" style={{ maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <div>
+              <h2 className="editorial-h2 text-foreground mb-1">Create your account</h2>
+              <p className="text-xs text-muted-foreground">
+                Access is granted by an administrator after signup.
+              </p>
             </div>
-          </div>
-
-          {error && (
-            <div
-              style={{
-                fontSize: '13px',
-                color: 'var(--destructive)',
-                background: 'color-mix(in oklab, var(--destructive) 10%, var(--card))',
-                border: '1px solid color-mix(in oklab, var(--destructive) 30%, transparent)',
-                borderRadius: '8px',
-                padding: '10px 14px',
-              }}
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn-ghost p-2"
+              aria-label="Close"
             >
-              {error}
-            </div>
-          )}
+              <X size={20} />
+            </button>
+          </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: '10px',
-              fontSize: '14px',
-              fontWeight: '500',
-              color: 'var(--primary-foreground)',
-              background: 'var(--primary)',
-              opacity: loading ? 0.6 : 1,
-              border: 'none',
-              borderRadius: '8px',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              transition: 'background 0.15s',
-            }}
-            onMouseEnter={(e) => { if (!loading) e.target.style.background = 'color-mix(in oklab, var(--primary) 90%, black)' }}
-            onMouseLeave={(e) => { if (!loading) e.target.style.background = 'var(--primary)' }}
-          >
-            {loading ? 'Creating account...' : 'Create account'}
-          </button>
-        </form>
+          <form onSubmit={handleSubmit} className="modal-body space-y-5">
+            {/* Name field */}
+            <div className="space-y-2">
+              <label className="label">Full Name</label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Afzal Khan"
+                  className="input pl-10"
+                />
+              </div>
+            </div>
+
+            {/* Email field */}
+            <div className="space-y-2">
+              <label className="label">Email</label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="afzal@howl.in"
+                  className="input pl-10"
+                />
+              </div>
+            </div>
+
+            {/* Password field */}
+            <div className="space-y-2">
+              <label className="label">Password</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="At least 8 characters"
+                  className="input pl-10 pr-20"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors p-1"
+                >
+                  {showPassword ? (
+                    <EyeOff size={16} />
+                  ) : (
+                    <Eye size={16} />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Error message */}
+            {error && (
+              <div className="bg-destructive/10 text-destructive border border-destructive/30 rounded-xl px-4 py-3 text-sm">
+                {error}
+              </div>
+            )}
+          </form>
+
+          <div className="modal-footer">
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn-ghost"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              onClick={handleSubmit}
+              disabled={loading}
+              className="btn-primary gloss"
+            >
+              {loading ? 'Creating account...' : 'Create account'}
+            </button>
+          </div>
+        </div>
       </div>
-    </div>
+    </Portal>
   )
 }

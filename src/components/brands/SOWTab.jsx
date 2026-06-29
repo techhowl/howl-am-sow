@@ -10,8 +10,9 @@ import { SowSummaryCard } from './sow/SowSummaryCard'
 import { SowCarryOverPanel } from './sow/SowCarryOverPanel'
 import { SowTypePicker } from './sow/SowTypePicker'
 import { SowTable } from './sow/SowTable'
+import { SowExportMenu } from './sow/SowExportMenu'
 
-export default function SOWTab({ brandId, canManage }) {
+export default function SOWTab({ brandId, canManage, brandName }) {
   const [month, setMonth]                     = useState(format(new Date(), 'yyyy-MM'))
   const [sowItems, setSowItems]               = useState([])
   const [carryOvers, setCarryOvers]           = useState([])
@@ -157,7 +158,13 @@ export default function SOWTab({ brandId, canManage }) {
             Monthly scope &amp; delivery for {monthLabel}
           </p>
         </div>
-        <SowMonthNav monthLabel={monthLabel} onPrev={prevMonth} onNext={nextMonth} />
+        <div className="flex items-center gap-2">
+          <SowExportMenu
+            disabled={loading || enrichedRows.length === 0}
+            getData={() => ({ brandName, monthLabel, rows: enrichedRows, totals })}
+          />
+          <SowMonthNav monthLabel={monthLabel} onPrev={prevMonth} onNext={nextMonth} />
+        </div>
       </div>
 
       {loading ? (

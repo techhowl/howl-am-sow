@@ -5,7 +5,7 @@ import connectDB from '@/lib/db/mongoose';
 import Task from '@/lib/db/models/Task';
 import BrandMember from '@/lib/db/models/BrandMember';
 import Notification from '@/lib/db/models/Notification';
-import { canPerformAction } from '@/lib/auth/permissions';
+import { canPerformAction, isManagement } from '@/lib/auth/permissions';
 
 export async function GET(request, { params }) {
   try {
@@ -20,7 +20,7 @@ export async function GET(request, { params }) {
     const priority = searchParams.get('priority');
     const assignee = searchParams.get('assignee');
 
-    const isAdminOrAM = ['superadmin', 'admin', 'account_manager'].includes(session.user.role);
+    const isAdminOrAM = isManagement(session.user.role);
     const filter = { brandId };
     if (status)   filter.status    = status;
     if (priority) filter.priority  = priority;

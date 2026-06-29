@@ -5,7 +5,7 @@ import connectDB from '@/lib/db/mongoose'
 import Brand from '@/lib/db/models/Brand'
 import BrandMember from '@/lib/db/models/BrandMember'
 import SOW from '@/lib/db/models/SOW'
-import { canManageBrands } from '@/lib/auth/permissions'
+import { canManageBrands, isManagement } from '@/lib/auth/permissions'
 import { format } from 'date-fns'
 
 // GET — list brands
@@ -17,7 +17,7 @@ export async function GET() {
     await connectDB()
 
     let brands
-    if (['superadmin', 'admin', 'account_manager'].includes(session.user.role)) {
+    if (isManagement(session.user.role)) {
       brands = await Brand.find({ isActive: true })
         .sort({ createdAt: -1 })
         .populate('createdBy', 'name email')

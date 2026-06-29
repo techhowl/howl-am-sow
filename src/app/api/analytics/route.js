@@ -6,6 +6,7 @@ import Task from '@/lib/db/models/Task';
 import Brand from '@/lib/db/models/Brand';
 import SOW from '@/lib/db/models/SOW';
 import User from '@/lib/db/models/User';
+import { isManagement } from '@/lib/auth/permissions';
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, format } from 'date-fns';
 
 // Health rating derived from delivery % AND variance.
@@ -26,7 +27,7 @@ export async function GET(req) {
   try {
     const session = await auth();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    if (!['superadmin', 'admin', 'account_manager'].includes(session.user.role)) {
+    if (!isManagement(session.user.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     await connectDB();

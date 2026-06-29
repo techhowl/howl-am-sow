@@ -5,13 +5,14 @@ import connectDB from '@/lib/db/mongoose';
 import Task from '@/lib/db/models/Task';
 import Brand from '@/lib/db/models/Brand';
 import SOW from '@/lib/db/models/SOW';
+import { isManagement } from '@/lib/auth/permissions';
 import { startOfMonth, endOfMonth, format } from 'date-fns';
 
 export async function GET(req, { params }) {
   try {
     const session = await auth();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    if (!['superadmin', 'admin', 'account_manager'].includes(session.user.role)) {
+    if (!isManagement(session.user.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     await connectDB();

@@ -9,6 +9,7 @@ import KanbanColumn from '@/components/tasks/KanbanColumn';
 import CreateTaskModal from '@/components/tasks/CreateTaskModal';
 import TaskDetailModal from '@/components/tasks/TaskDetailModal';
 import { KANBAN_COLUMNS } from '@/lib/constants/tasks';
+import { isManagement } from '@/lib/auth/permissions';
 import { SkeletonKanban } from '@/components/shared/Skeleton';
 
 // Row 1 = production stages (copy → design → video), no internal_review
@@ -32,7 +33,7 @@ export default function TasksPage() {
   const [filterPriority, setFilterPriority]   = useState('all');
   const [filterAssignee, setFilterAssignee]   = useState('all');
 
-  const canManage = ['superadmin', 'admin', 'account_manager'].includes(session?.user?.role);
+  const canManage = isManagement(session?.user?.role);
 
   const fetchData = useCallback(async () => {
     setError('');

@@ -6,6 +6,7 @@ import { signOut, useSession } from 'next-auth/react'
 import NotificationBell from '@/components/layout/NotificationBell'
 import { ThemeToggle } from '@/components/shared/ThemeToggle'
 import { Logo } from '@/components/shared/Logo'
+import { MANAGEMENT_ROLES, ROLE_LABELS } from '@/lib/auth/permissions'
 import {
   LayoutDashboard,
   Layers,
@@ -19,19 +20,9 @@ const NAV = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: 'all' },
   { label: 'Brands',    href: '/brands',    icon: Layers,          roles: 'all' },
   { label: 'Timeline',  href: '/timeline',  icon: Calendar,        roles: 'all' },
-  { label: 'Analytics', href: '/analytics', icon: BarChart2,       roles: ['superadmin', 'admin', 'account_manager'] },
+  { label: 'Analytics', href: '/analytics', icon: BarChart2,       roles: MANAGEMENT_ROLES },
   { label: 'Users',     href: '/users',     icon: Users,           roles: ['superadmin'] },
 ]
-
-const ROLE_LABELS = {
-  superadmin:      'Super Admin',
-  admin:           'Admin',
-  account_manager: 'Account Manager',
-  designer:        'Designer',
-  copywriter:      'Copywriter',
-  motion_designer: 'Motion Designer',
-  user:            'User',
-}
 
 export default function Sidebar() {
   const pathname = usePathname()

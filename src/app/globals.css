@@ -484,6 +484,34 @@
 .btn-danger:active { transform: scale(0.97); }
 .btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* Export dropdown items */
+.export-item {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 8px 10px; border: none; background: transparent; cursor: pointer;
+  border-radius: var(--radius-md); text-align: left; font-family: inherit;
+  transition: background 0.15s var(--ease-glass);
+  outline: none;
+}
+.export-item:hover, .export-item:focus-visible {
+  background: color-mix(in oklab, var(--primary) 10%, transparent);
+}
+.export-ico {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; flex-shrink: 0;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-rim);
+}
+.export-ico[data-tone="pdf"] {
+  color: var(--destructive);
+  background: color-mix(in oklab, var(--destructive) 12%, transparent);
+  border-color: color-mix(in oklab, var(--destructive) 28%, transparent);
+}
+.export-ico[data-tone="csv"] {
+  color: var(--success);
+  background: color-mix(in oklab, var(--success) 12%, transparent);
+  border-color: color-mix(in oklab, var(--success) 28%, transparent);
+}
+
 /* ──────────────────────────────────────────────────────────────────────────
    Inputs / labels / chips / misc
    ────────────────────────────────────────────────────────────────────────── */

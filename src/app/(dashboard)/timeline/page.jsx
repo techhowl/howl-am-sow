@@ -4,8 +4,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { format, isToday, differenceInCalendarDays } from 'date-fns';
 import { Calendar, AlertCircle, Clock, ChevronDown, Filter, LayoutList } from 'lucide-react';
+import { motion } from 'motion/react';
 import { isOverdue, isDeadlineWithinBusinessDays, businessDaysBetween } from '@/lib/business-days';
-import { SkeletonTable } from '@/components/shared/Skeleton';
+import { AnimatedGradientWrapper as AnimatedGradient } from '@/components/ui/animated-gradient-wrapper';
+
+// HOWL brand palette for the ambient header gradient
+const HEADER_GRADIENT = ['oklch(0.52 0.17 300)', 'oklch(0.60 0.12 268)', 'oklch(0.68 0.15 355)'];
 
 const STATUS_LABELS = {
   copy_wip:        'Copy WIP',
@@ -34,7 +38,7 @@ const PRIORITY_STYLES = {
 };
 
 function DeadlineCell({ date }) {
-  if (!date) return <span className="text-muted-foreground text-sm">—</span>;
+  if (!date) return <span className="text-sm text-muted-foreground/50">—</span>;
 
   const d     = new Date(date);
   const today = new Date();
@@ -46,46 +50,18 @@ function DeadlineCell({ date }) {
   const daysLeft  = differenceInCalendarDays(d, today);
   const bdLeft    = overdue ? null : businessDaysBetween(today, d);
 
-  if (overdue) {
-    return (
-      <div className="flex items-center gap-1.5">
-        <AlertCircle className="w-3.5 h-3.5 text-destructive shrink-0" />
-        <div>
-          <p className="text-sm font-medium text-destructive">{format(d, 'dd MMM yyyy')}</p>
-          <p className="text-xs text-destructive">{Math.abs(daysLeft)}d overdue</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (dueToday) {
-    return (
-      <div className="flex items-center gap-1.5">
-        <Clock className="w-3.5 h-3.5 text-warning shrink-0" />
-        <div>
-          <p className="text-sm font-medium text-warning">Today</p>
-          <p className="text-xs text-warning">Due today</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (within3bd) {
-    return (
-      <div className="flex items-center gap-1.5">
-        <Clock className="w-3.5 h-3.5 text-warning shrink-0" />
-        <div>
-          <p className="text-sm font-medium text-warning">{format(d, 'dd MMM yyyy')}</p>
-          <p className="text-xs text-warning">{bdLeft} biz day{bdLeft !== 1 ? 's' : ''} left</p>
-        </div>
-      </div>
-    );
-  }
+  let Icon = null, tone = 'text-foreground', sub = `${daysLeft}d left`, subTone = 'text-muted-foreground';
+  if (overdue)        { Icon = AlertCircle; tone = 'text-destructive'; sub = `${Math.abs(daysLeft)}d overdue`; subTone = 'text-destructive'; }
+  else if (dueToday)  { Icon = Clock;       tone = 'text-warning';     sub = 'Due today';                     subTone = 'text-warning'; }
+  else if (within3bd) { Icon = Clock;       tone = 'text-warning';     sub = `${bdLeft} biz day${bdLeft !== 1 ? 's' : ''} left`; subTone = 'text-warning'; }
 
   return (
-    <div>
-      <p className="text-sm text-foreground">{format(d, 'dd MMM yyyy')}</p>
-      <p className="text-xs text-muted-foreground">{daysLeft}d left</p>
+    <div className="flex items-center gap-2">
+      {Icon && <Icon className={`w-3.5 h-3.5 shrink-0 ${tone}`} aria-hidden="true" />}
+      <div className="min-w-0 leading-tight">
+        <p className={`text-sm font-medium ${tone}`}>{dueToday ? 'Today' : format(d, 'dd MMM yyyy')}</p>
+        <p className={`text-[11px] mt-0.5 ${subTone}`}>{sub}</p>
+      </div>
     </div>
   );
 }
@@ -102,11 +78,12 @@ function getRowUrgency(task) {
   return 3;
 }
 
-function getRowBg(urgency) {
-  if (urgency === 0) return 'bg-destructive/10 hover:bg-destructive/15';
-  if (urgency === 1) return 'bg-warning/10 hover:bg-warning/15';
-  if (urgency === 2) return 'bg-warning/10 hover:bg-warning/15';
-  return 'bg-card hover:bg-muted';
+// Urgency is shown as a quiet left accent bar — not a full-row wash — so the
+// table keeps a clear hierarchy and stays smooth in dark mode.
+function urgencyAccent(urgency) {
+  if (urgency === 0) return 'border-l-destructive';
+  if (urgency === 1 || urgency === 2) return 'border-l-warning';
+  return 'border-l-transparent';
 }
 
 export default function TimelinePage() {
@@ -166,8 +143,14 @@ export default function TimelinePage() {
     <div className="flex flex-col h-full overflow-hidden bg-background">
 
       {/* Header */}
-      <div className="shrink-0 px-6 pt-6 pb-4 border-b border-border bg-card backdrop-blur-xl">
-        <div className="flex items-start justify-between mb-4">
+      <div className="relative shrink-0 overflow-hidden px-6 pt-6 pb-4 border-b border-border bg-card backdrop-blur-xl">
+        {/* Ambient brand gradient */}
+        <div className="pointer-events-none absolute inset-0 opacity-60">
+          <AnimatedGradient colors={HEADER_GRADIENT} speed={0.01} blur="heavy" />
+        </div>
+        <div className="pointer-events-none absolute inset-0 bg-linear-to-b from-transparent to-background/40" />
+
+        <div className="relative z-10 flex items-start justify-between mb-4">
           <div>
             <div className="flex items-center gap-2 mb-0.5">
               <Calendar className="w-4 h-4 text-muted-foreground" />
@@ -223,7 +206,7 @@ export default function TimelinePage() {
         </div>
 
         {/* Filter bar */}
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative z-10 flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Filter className="w-3.5 h-3.5" />
             Filter:
@@ -292,7 +275,27 @@ export default function TimelinePage() {
       {/* Table */}
       <div className="flex-1 overflow-auto px-6 py-4">
         {loading ? (
-          <SkeletonTable rows={8} className="rounded-2xl" />
+          <div className="flex items-center justify-center py-32">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex flex-col items-center"
+            >
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                className="w-12 h-12 border-3 border-primary/30 border-t-primary rounded-full"
+              />
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="mt-4 text-sm text-muted-foreground"
+              >
+                Loading timeline...
+              </motion.p>
+            </motion.div>
+          </div>
         ) : tasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <LayoutList className="w-10 h-10 mb-3 text-muted-foreground" />
@@ -306,76 +309,80 @@ export default function TimelinePage() {
             <p className="text-xs mt-1">Try adjusting the filters above</p>
           </div>
         ) : (
-          <div className="rounded-2xl border border-border overflow-hidden bg-card backdrop-blur-xl">
-            {/* Header row */}
-            <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] bg-muted border-b border-border px-4 py-3">
-              {['Task', 'Brand', 'Status', 'Priority', 'Internal Deadline', 'External Deadline'].map((h) => (
-                <p key={h} className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{h}</p>
-              ))}
-            </div>
+          <div className="surface-card overflow-hidden p-0">
+            <div className="overflow-x-auto">
+              <div className="min-w-[940px]">
+                {/* Header row — sticky so it stays put while rows scroll */}
+                <div className="sticky top-0 z-10 grid grid-cols-[2.2fr_1fr_1fr_0.9fr_1.1fr_1.1fr] items-center glass-thin border-b border-border px-4 py-3 pl-[calc(1rem+2px)]">
+                  {['Task', 'Brand', 'Status', 'Priority', 'Internal Deadline', 'External Deadline'].map((h) => (
+                    <p key={h} className="text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.08em]">{h}</p>
+                  ))}
+                </div>
 
-            {/* Data rows */}
-            {filtered.map((task) => {
-              const urgency = getRowUrgency(task);
-              const brand   = task.brandId;
-              return (
-                <div
-                  key={task._id}
-                  className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] px-4 py-3.5 border-b border-border last:border-0 transition-colors ${getRowBg(urgency)}`}
-                >
-                  {/* Task name + assignees */}
-                  <div className="min-w-0 pr-4">
-                    <p className="text-sm font-medium text-foreground truncate">{task.title}</p>
-                    {task.assignees?.length > 0 && (
-                      <div className="flex -space-x-1 mt-1.5">
-                        {task.assignees.slice(0, 3).map((a) => (
-                          <div
-                            key={a._id}
-                            title={a.name}
-                            className="w-5 h-5 rounded-full bg-primary/10 border-2 border-card flex items-center justify-center shrink-0"
-                          >
-                            <span className="text-[9px] font-semibold text-primary">
-                              {a.name?.[0]?.toUpperCase()}
-                            </span>
-                          </div>
-                        ))}
-                        {task.assignees.length > 3 && (
-                          <div className="w-5 h-5 rounded-full bg-muted border-2 border-card flex items-center justify-center">
-                            <span className="text-[9px] text-muted-foreground">+{task.assignees.length - 3}</span>
+                {/* Data rows */}
+                {filtered.map((task, i) => {
+                  const urgency = getRowUrgency(task);
+                  const brand   = task.brandId;
+                  return (
+                    <div
+                      key={task._id}
+                      className={`grid grid-cols-[2.2fr_1fr_1fr_0.9fr_1.1fr_1.1fr] items-center px-4 py-3.5 border-l-2 border-b border-border/50 last:border-b-0 transition-colors duration-200 hover:bg-muted/50 ${urgencyAccent(urgency)} ${i % 2 === 1 ? 'bg-foreground/[0.015]' : ''}`}
+                    >
+                      {/* Task name + assignees */}
+                      <div className="min-w-0 pr-4">
+                        <p className="text-sm font-medium text-foreground truncate">{task.title}</p>
+                        {task.assignees?.length > 0 && (
+                          <div className="flex -space-x-1.5 mt-1.5">
+                            {task.assignees.slice(0, 3).map((a) => (
+                              <div
+                                key={a._id}
+                                title={a.name}
+                                className="w-6 h-6 rounded-full bg-primary/15 ring-2 ring-card flex items-center justify-center shrink-0"
+                              >
+                                <span className="text-[10px] font-semibold text-primary">
+                                  {a.name?.[0]?.toUpperCase()}
+                                </span>
+                              </div>
+                            ))}
+                            {task.assignees.length > 3 && (
+                              <div className="w-6 h-6 rounded-full bg-muted ring-2 ring-card flex items-center justify-center">
+                                <span className="text-[10px] font-medium text-muted-foreground">+{task.assignees.length - 3}</span>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
-                    )}
-                  </div>
 
-                  {/* Brand */}
-                  <div className="flex items-start gap-1.5 min-w-0">
-                    {brand?.color && (
-                      <span className="w-2 h-2 rounded-full shrink-0 mt-1" style={{ backgroundColor: brand.color }} />
-                    )}
-                    <span className="text-sm text-foreground truncate">{brand?.name || '—'}</span>
-                  </div>
+                      {/* Brand */}
+                      <div className="flex items-center gap-2 min-w-0 pr-2">
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0 ring-1 ring-border" style={{ backgroundColor: brand?.color || 'var(--muted-foreground)' }} />
+                        <span className="text-sm text-foreground truncate">{brand?.name || '—'}</span>
+                      </div>
 
-                  {/* Status */}
-                  <div>
-                    <span className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_STYLES[task.status] || 'bg-muted text-muted-foreground'}`}>
-                      {STATUS_LABELS[task.status] || task.status}
-                    </span>
-                  </div>
+                      {/* Status */}
+                      <div>
+                        <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_STYLES[task.status] || 'bg-muted text-muted-foreground'}`}>
+                          <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" aria-hidden="true" />
+                          {STATUS_LABELS[task.status] || task.status}
+                        </span>
+                      </div>
 
-                  {/* Priority */}
-                  <div>
-                    <span className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full capitalize ${PRIORITY_STYLES[task.priority] || 'bg-muted text-muted-foreground'}`}>
-                      {task.priority}
-                    </span>
-                  </div>
+                      {/* Priority */}
+                      <div>
+                        <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full capitalize ${PRIORITY_STYLES[task.priority] || 'bg-muted text-muted-foreground'}`}>
+                          <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" aria-hidden="true" />
+                          {task.priority}
+                        </span>
+                      </div>
 
-                  {/* Deadlines */}
-                  <DeadlineCell date={task.internalDeadline} />
-                  <DeadlineCell date={task.externalDeadline} />
-                </div>
-              );
-            })}
+                      {/* Deadlines */}
+                      <DeadlineCell date={task.internalDeadline} />
+                      <DeadlineCell date={task.externalDeadline} />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         )}
       </div>

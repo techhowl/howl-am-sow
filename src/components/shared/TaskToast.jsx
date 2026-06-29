@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { X, Bell, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { isManagement } from '@/lib/auth/permissions';
 
 function Toast({ notification, onClose, onNavigate }) {
   const [visible, setVisible] = useState(false);
@@ -98,7 +99,7 @@ export default function TaskToast() {
   const router = useRouter();
   const [toasts, setToasts]         = useState([]);
   const seenIdsRef                  = useRef(new Set());
-  const isAdminOrAM = ['superadmin', 'admin', 'account_manager'].includes(session?.user?.role);
+  const isAdminOrAM = isManagement(session?.user?.role);
 
   // Employees only — admins/AMs don't need task assignment toasts
   const shouldPoll = session && !isAdminOrAM;

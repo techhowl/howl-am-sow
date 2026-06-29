@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import SignupModal from '@/components/auth/SignupModal'
 import { Logo } from '@/components/shared/Logo'
 import { Field } from '@/components/shared/Field'
+import { AnimatedGradient } from '@/components/ui/animated-gradient-with-svg'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -40,21 +41,32 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-6">
-      <div className="w-full max-w-sm">
+    <div className="min-h-screen bg-background flex items-center justify-center p-6 relative">
+      {/* Animated gradient background - subtle for auth pages */}
+      <AnimatedGradient 
+        colors={[
+          'oklch(0.52 0.17 300 / 0.3)', 
+          'oklch(0.60 0.12 268 / 0.3)', 
+          'oklch(0.68 0.15 355 / 0.3)'
+        ]}
+        speed={0.01}
+        blur="heavy"
+      />
+      
+      <div className="w-full max-w-sm relative z-10">
 
         {/* Masthead */}
-        <div className="mb-8 space-y-4">
+        <div className="mb-8 space-y-4 text-center">
           <Logo variant="full" size={36} />
           <div className="space-y-1.5">
             <p className="eyebrow">SOW TRACKER</p>
-            <h1 className="editorial-h1">Welcome back</h1>
+            <h1 className="editorial-h1 glass-title">Welcome back</h1>
             <p className="editorial-lede">Sign in to your account to continue.</p>
           </div>
         </div>
 
-        {/* Card */}
-        <div className="surface-card p-6 md:p-8">
+        {/* Card with enhanced glass effect */}
+        <div className="surface-card glass-thick gloss p-6 md:p-8">
           <form onSubmit={handleSubmit} className="space-y-4">
 
             <Field

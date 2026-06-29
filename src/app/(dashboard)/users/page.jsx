@@ -3,19 +3,23 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { motion } from 'motion/react'
 import RoleBadge from '@/components/shared/RoleBadge'
 import CreateUserModal from '@/components/users/CreateUserModal'
-import { SkeletonTable } from '@/components/shared/Skeleton'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { IconMedallion } from '@/components/shared/IconMedallion'
-import { RBAC_ROLES, isSuperadmin } from '@/lib/auth/permissions'
+import { AnimatedGradientWrapper as AnimatedGradient } from '@/components/ui/animated-gradient-wrapper'
+import { RBAC_ROLES, ROLE_LABELS, isSuperadmin } from '@/lib/auth/permissions'
+
+// HOWL brand palette for the ambient header gradient
+const HEADER_GRADIENT = ['oklch(0.52 0.17 300)', 'oklch(0.60 0.12 268)', 'oklch(0.68 0.15 355)']
 
 // Roles a superadmin can assign from the dropdown ('user' = no access)
 const ROLE_OPTIONS = [
   { value: 'user', label: 'User (no access)' },
   ...RBAC_ROLES.map((r) => ({
     value: r,
-    label: r.split('_').map((w) => w[0].toUpperCase() + w.slice(1)).join(' '),
+    label: ROLE_LABELS[r] || r,
   })),
 ]
 
@@ -83,16 +87,26 @@ export default function UsersPage() {
   return (
     <div className="bg-background p-8 mx-auto w-full max-w-4xl">
 
-      <PageHeader
-        eyebrow="TEAM"
-        title="Team members"
-        lede={`${users.filter((u) => u.isActive).length} active · ${users.length} total`}
-        actions={
-          <button onClick={() => setShowModal(true)} className="btn-primary">
-            Add user
-          </button>
-        }
-      />
+      {/* Hero header with ambient brand gradient */}
+      <div className="relative overflow-hidden surface-card gloss p-6 mb-6">
+        <div className="pointer-events-none absolute inset-0 opacity-60">
+          <AnimatedGradient colors={HEADER_GRADIENT} speed={0.01} blur="heavy" />
+        </div>
+        <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/5 to-transparent" />
+        <div className="relative z-10">
+          <PageHeader
+            eyebrow="TEAM"
+            title="Team members"
+            lede={`${users.filter((u) => u.isActive).length} active · ${users.length} total`}
+            actions={
+              <button onClick={() => setShowModal(true)} className="btn-primary">
+                Add user
+              </button>
+            }
+            className="mb-0"
+          />
+        </div>
+      </div>
 
       {/* Search */}
       <input
@@ -106,7 +120,27 @@ export default function UsersPage() {
       {/* Table */}
       <div className="surface-card overflow-hidden">
         {loading ? (
-          <SkeletonTable rows={6} className="rounded-none border-0 bg-transparent" />
+          <div className="flex items-center justify-center py-32">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex flex-col items-center"
+            >
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                className="w-12 h-12 border-3 border-primary/30 border-t-primary rounded-full"
+              />
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="mt-4 text-sm text-muted-foreground"
+              >
+                Loading users...
+              </motion.p>
+            </motion.div>
+          </div>
         ) : filtered.length === 0 ? (
           <p className="p-12 text-center text-sm text-muted-foreground">
             No users found.
@@ -129,9 +163,9 @@ export default function UsersPage() {
               {filtered.map((user, i) => (
                 <tr
                   key={user._id}
-                  className={`transition-colors hover:bg-muted ${
-                    i < filtered.length - 1 ? 'border-b border-border' : ''
-                  }`}
+                  className={`transition-colors duration-200 hover:bg-muted/50 ${
+                    i % 2 === 1 ? 'bg-foreground/[0.015]' : ''
+                  } ${i < filtered.length - 1 ? 'border-b border-border/50' : ''}`}
                 >
                   {/* Member */}
                   <td className="px-5 py-3.5">

@@ -1,41 +1,30 @@
 // src/app/(dashboard)/dashboard/loading.jsx
 'use client'
 
-import { Skeleton, SkeletonStatCards, SkeletonTable, SkeletonList } from '@/components/shared/Skeleton'
+import { motion } from 'motion/react'
 
-// Layout-matching skeleton for the dashboard route (server component blocks on
-// DB queries). Mirrors the shared shape of both Admin and Employee dashboards:
-// header → 3 stat cards → (2/3 list card) + (1/3 side card).
 export default function DashboardLoading() {
   return (
-    <div className="min-h-screen bg-background p-8">
-
-      {/* Header */}
-      <div className="mb-8">
-        <Skeleton className="h-6 w-56" />
-        <Skeleton className="mt-2 h-3 w-40" />
-      </div>
-
-      {/* Stat cards — matches grid-cols-3 metric row */}
-      <SkeletonStatCards count={3} className="mb-8" />
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-
-        {/* Primary list card (Recent Tasks / My Tasks) */}
-        <div className="lg:col-span-2 bg-card border border-border rounded-2xl p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <Skeleton className="h-4 w-28" />
-            <Skeleton className="h-3 w-20" />
-          </div>
-          <SkeletonTable rows={6} className="border-0" />
-        </div>
-
-        {/* Side column (Quick Links / Brands) */}
-        <div className="bg-card border border-border rounded-2xl p-5">
-          <Skeleton className="mb-4 h-4 w-24" />
-          <SkeletonList rows={4} />
-        </div>
-      </div>
+    <div className="min-h-screen bg-background p-8 flex items-center justify-center">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex flex-col items-center"
+      >
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+          className="w-12 h-12 border-3 border-primary/30 border-t-primary rounded-full"
+        />
+        <motion.p
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="mt-4 text-sm text-muted-foreground"
+        >
+          Loading dashboard...
+        </motion.p>
+      </motion.div>
     </div>
   )
 }

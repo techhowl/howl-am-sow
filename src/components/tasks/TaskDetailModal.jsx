@@ -10,8 +10,10 @@ import DeadlineBadge from '@/components/shared/DeadlineBadge';
 import RejectionDialog from '@/components/tasks/RejectionDialog';
 import CommentThread from '@/components/tasks/CommentThread';
 import ActivityFeed from '@/components/tasks/ActivityFeed';
+import { AnimatedGradient } from '@/components/ui/animated-gradient-with-svg';
 import { format } from 'date-fns';
 import { getBackwardTransition } from '@/lib/workflow/transitions';
+import { isManagement } from '@/lib/auth/permissions';
 
 // Workflow order: copy → design → video → sent_to_client → approved → live
 // Stages can skip ahead when not required (no-video task: design_wip → sent_to_client)
@@ -201,7 +203,7 @@ export default function TaskDetailModal({
   const [selectedStatus, setSelectedStatus]     = useState('');
   const [error, setError]                       = useState('');
 
-  const canManage  = ['superadmin', 'admin', 'account_manager'].includes(currentUserRole);
+  const canManage  = isManagement(currentUserRole);
   const isLive     = task.status === 'live';
   const isRejected = task.status === 'rejected';
 
@@ -521,8 +523,25 @@ export default function TaskDetailModal({
         <div className="modal-backdrop" style={{ zIndex: 100000 }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
           <div className="modal" style={{ maxWidth: 640, maxHeight: '88vh' }} onClick={(e) => e.stopPropagation()}>
             {/* Hero header */}
-            <div className="modal-header" style={{ alignItems: 'flex-start' }}>
-              <div style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
+            <div className="modal-header" style={{ alignItems: 'flex-start', position: 'relative', overflow: 'hidden' }}>
+              {/* Animated gradient for important states */}
+              {(task.status === 'live' || task.status === 'approved' || task.priority === 'high') && (
+                <>
+                  <AnimatedGradient 
+                    colors={
+                      task.status === 'live' 
+                        ? ['oklch(0.60 0.16 165)', 'oklch(0.74 0.16 165)', 'oklch(0.68 0.15 355)'] // Success colors
+                        : task.status === 'approved'
+                        ? ['oklch(0.60 0.16 165)', 'oklch(0.52 0.17 300)', 'oklch(0.60 0.12 268)'] // Success-primary blend
+                        : ['oklch(0.56 0.22 20)', 'oklch(0.68 0.15 45)', 'oklch(0.52 0.17 300)']   // High priority colors
+                    }
+                    speed={0.02}
+                    blur="light"
+                  />
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom right, rgba(255,255,255,0.05), transparent)', pointerEvents: 'none' }} />
+                </>
+              )}
+              <div style={{ flex: 1, minWidth: 0, paddingRight: 12, position: 'relative', zIndex: 10 }}>
                 {editing ? (
                   <input
                     value={editForm.title}

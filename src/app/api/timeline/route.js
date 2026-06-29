@@ -5,6 +5,7 @@ import connectDB from '@/lib/db/mongoose';
 import Task from '@/lib/db/models/Task';
 import BrandMember from '@/lib/db/models/BrandMember';
 import Brand from '@/lib/db/models/Brand';
+import { isManagement } from '@/lib/auth/permissions';
 
 export async function GET(req) {
   try {
@@ -13,7 +14,7 @@ export async function GET(req) {
 
     await connectDB();
 
-    const isAdminOrAM = ['superadmin', 'admin', 'account_manager'].includes(session.user.role);
+    const isAdminOrAM = isManagement(session.user.role);
 
     let filter = { status: { $ne: 'live' } };
 
