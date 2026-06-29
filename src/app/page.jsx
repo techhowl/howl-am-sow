@@ -11,6 +11,7 @@ import {
   ChevronRight, Play, Star, Menu, X
 } from 'lucide-react';
 import { Logo } from '@/components/shared/Logo';
+import { ThemeToggle } from '@/components/shared/ThemeToggle';
 import { AnimatedGradientWrapper as AnimatedGradient } from '@/components/ui/animated-gradient-wrapper';
 import { AnimatedNumber } from '@/components/shared/motion/AnimatedNumber';
 import { cn } from '@/lib/utils';
@@ -59,6 +60,7 @@ function Navigation() {
 
         {/* Auth buttons */}
         <div className="hidden md:flex items-center gap-4">
+          <ThemeToggle />
           <Link href="/login" className="btn-ghost">
             Sign In
           </Link>
@@ -69,12 +71,16 @@ function Navigation() {
         </div>
 
         {/* Mobile menu button */}
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="md:hidden p-2 text-foreground"
-        >
-          {isOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        <div className="md:hidden flex items-center gap-2">
+          <ThemeToggle />
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            aria-label={isOpen ? 'Close menu' : 'Open menu'}
+            className="p-2 text-foreground"
+          >
+            {isOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile menu */}
