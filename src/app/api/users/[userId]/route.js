@@ -3,7 +3,7 @@
 import { auth } from '@/lib/auth/auth'
 import connectDB from '@/lib/db/mongoose'
 import User from '@/lib/db/models/User'
-import { canCreateUsers, canManageRoles, RBAC_ROLES } from '@/lib/auth/permissions'
+import { canManageRoles, RBAC_ROLES } from '@/lib/auth/permissions'
 import { NextResponse } from 'next/server'
 
 // Roles a superadmin may assign via the UI ('user' = revoke access; never 'superadmin')
@@ -18,12 +18,26 @@ export async function PATCH(req, { params }) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!canCreateUsers(session.user.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    // User administration is superadmin-only. The /users page is already
+    // superadmin-only in the UI; this closes the matching hole in the API,
+    // where any management-tier role (including every AM tier) could
+    // previously rename or deactivate anyone — a superadmin included.
+    if (!canManageRoles(session.user.role)) {
+      return NextResponse.json(
+        { error: 'Only a superadmin can manage users' },
+        { status: 403 }
+      )
     }
 
     const { userId } = await params
     const body = await req.json()
+
+    await connectDB()
+
+    const target = await User.findById(userId).select('role isActive').lean()
+    if (!target) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
 
     // Only allow safe fields to be updated here
     const allowedUpdates = {}
@@ -34,14 +48,8 @@ export async function PATCH(req, { params }) {
       allowedUpdates.name = body.name.trim()
     }
 
-    // Role changes — superadmin only (this is how access is granted/revoked)
+    // Role changes — this is how access is granted/revoked
     if (body.role !== undefined) {
-      if (!canManageRoles(session.user.role)) {
-        return NextResponse.json(
-          { error: 'Only a superadmin can change user roles' },
-          { status: 403 }
-        )
-      }
       if (!ASSIGNABLE_ROLES.includes(body.role)) {
         return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
       }
@@ -49,6 +57,14 @@ export async function PATCH(req, { params }) {
         return NextResponse.json(
           { error: 'You cannot change your own role' },
           { status: 400 }
+        )
+      }
+      // A superadmin cannot be demoted through the API — superadmin status is
+      // granted and removed server-side only (npm run set:superadmin).
+      if (target.role === 'superadmin') {
+        return NextResponse.json(
+          { error: 'A superadmin role can only be changed from the server script' },
+          { status: 403 }
         )
       }
       allowedUpdates.role = body.role
@@ -62,11 +78,24 @@ export async function PATCH(req, { params }) {
       )
     }
 
+    // Never allow the last active superadmin to be deactivated — that would
+    // lock everyone out of user management permanently.
+    if (allowedUpdates.isActive === false && target.role === 'superadmin') {
+      const activeSuperadmins = await User.countDocuments({
+        role: 'superadmin',
+        isActive: true,
+      })
+      if (activeSuperadmins <= 1) {
+        return NextResponse.json(
+          { error: 'Cannot deactivate the last active superadmin' },
+          { status: 400 }
+        )
+      }
+    }
+
     if (Object.keys(allowedUpdates).length === 0) {
       return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
     }
-
-    await connectDB()
 
     const user = await User.findByIdAndUpdate(
       userId,

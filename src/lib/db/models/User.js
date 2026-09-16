@@ -57,7 +57,8 @@ const UserSchema = new mongoose.Schema(
   }
 )
 
-UserSchema.index({ email: 1 })
+// email already gets a unique index from the field definition above —
+// re-declaring it here caused a duplicate-index warning on every boot.
 UserSchema.index({ role: 1 })
 UserSchema.index({ isActive: 1 })
 

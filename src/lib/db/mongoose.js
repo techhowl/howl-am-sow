@@ -5,7 +5,7 @@ import mongoose from 'mongoose'
 const MONGODB_URI = process.env.MONGODB_URI
 
 if (!MONGODB_URI) {
-  throw new Error('Please define MONGODB_URI in .env.local')
+  throw new Error('Please define MONGODB_URI in .env')
 }
 
 let cached = global.mongoose
@@ -23,7 +23,13 @@ async function connectDB() {
     const opts = {
       bufferCommands: false,
       tls: true,
-      tlsAllowInvalidCertificates: true,
+      // Never skip certificate validation in production — that would leave the
+      // database connection open to interception. Local dev on Windows often
+      // cannot validate the Atlas chain, so it stays relaxed there only.
+      // Set MONGODB_TLS_INSECURE=true to force the old behaviour if needed.
+      tlsAllowInvalidCertificates:
+        process.env.MONGODB_TLS_INSECURE === 'true' ||
+        process.env.NODE_ENV !== 'production',
       serverSelectionTimeoutMS: 10000,
       socketTimeoutMS: 45000,
       connectTimeoutMS: 10000,
