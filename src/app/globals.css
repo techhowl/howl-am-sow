@@ -374,18 +374,18 @@
   transform: translateY(-2px);
 }
 
-/* static top gloss + hover sheen sweep */
+/* Static top gloss only.
+   There used to be a `.gloss::after` hover sheen parked at translateX(-130%),
+   meant to sweep across the card on hover. `.gloss` has no `overflow: hidden`,
+   so that band was never clipped -- it sat permanently visible as a hard-edged
+   rectangle floating to the left of every glass card, most obviously on /login.
+   (.btn-primary uses the same sweep but does set overflow:hidden, so it is fine.)
+   Removed outright rather than clipped: the effect was not worth an extra
+   composited layer on every card. */
 .gloss::before {
   content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 1;
   background: linear-gradient(180deg, oklch(1 0 0 / 0.18), transparent 42%);
 }
-.gloss::after {
-  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 1;
-  background: linear-gradient(105deg, transparent 30%, oklch(1 0 0 / 0.22) 48%, transparent 62%);
-  transform: translateX(-130%);
-  transition: transform 0.7s var(--ease-glass);
-}
-.gloss:hover::after { transform: translateX(130%); }
 
 /* ──────────────────────────────────────────────────────────────────────────
    Universal focus-visible ring (glows)
