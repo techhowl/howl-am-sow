@@ -3,10 +3,10 @@
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react'
 import SignupModal from '@/components/auth/SignupModal'
 import { Logo } from '@/components/shared/Logo'
 import { Field } from '@/components/shared/Field'
-import { AnimatedGradient } from '@/components/ui/animated-gradient-with-svg'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -29,58 +29,54 @@ export default function LoginPage() {
       })
       if (result?.error) {
         setError('Invalid email or password.')
-      } else {
-        router.push('/dashboard')
-        router.refresh()
+        setLoading(false)
+        return
       }
+      router.push('/dashboard')
+      router.refresh()
     } catch {
       setError('Something went wrong. Try again.')
-    } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-6 relative">
-      {/* Animated gradient background - subtle for auth pages */}
-      <AnimatedGradient 
-        colors={[
-          'oklch(0.52 0.17 300 / 0.3)', 
-          'oklch(0.60 0.12 268 / 0.3)', 
-          'oklch(0.68 0.15 355 / 0.3)'
-        ]}
-        speed={0.01}
-        blur="heavy"
-      />
-      
-      <div className="w-full max-w-sm relative z-10">
+    <div className="relative min-h-screen overflow-hidden flex items-center justify-center p-6">
+      {/* Composed brand wash. Replaces the old randomly-placed blurred blobs,
+          which sat frozen (their animation never compiled) and read as smudges. */}
+      <div aria-hidden="true" className="login-aura pointer-events-none absolute inset-0" />
+
+      <div className="relative z-10 w-full max-w-[400px]">
 
         {/* Masthead */}
-        <div className="mb-8 space-y-4 text-center">
-          <Logo variant="full" size={36} />
+        <div className="mb-8 flex flex-col items-center gap-4 text-center">
+          <Logo variant="full" size={38} />
           <div className="space-y-1.5">
             <p className="eyebrow">SOW TRACKER</p>
-            <h1 className="editorial-h1 glass-title">Welcome back</h1>
-            <p className="editorial-lede">Sign in to your account to continue.</p>
+            <h1 className="editorial-h1 text-foreground">Welcome back</h1>
+            <p className="text-sm text-muted-foreground">
+              Sign in to your account to continue.
+            </p>
           </div>
         </div>
 
-        {/* Card with enhanced glass effect */}
-        <div className="surface-card glass-thick gloss p-6 md:p-8">
-          <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Card */}
+        <div className="surface-card glass-thick gloss p-7 md:p-8">
+          <form onSubmit={handleSubmit} className="space-y-5" noValidate>
 
             <Field
               label="Email"
               id="email"
               type="email"
               required
+              autoFocus
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="afzal@howl.in"
+              placeholder="you@howl.in"
+              aria-invalid={error ? 'true' : undefined}
             />
 
-            {/* Password with show/hide toggle */}
             <div className="relative">
               <Field
                 label="Password"
@@ -91,42 +87,55 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="[&_.input]:pr-16"
+                className="[&_.input]:pr-11"
+                aria-invalid={error ? 'true' : undefined}
               />
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 bottom-2.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-pressed={showPassword}
+                className="absolute right-1.5 bottom-1 grid h-8 w-8 place-items-center rounded-md text-muted-foreground transition-colors hover:text-foreground hover:bg-muted cursor-pointer"
               >
-                {showPassword ? 'Hide' : 'Show'}
+                {showPassword ? <EyeOff size={15} aria-hidden="true" /> : <Eye size={15} aria-hidden="true" />}
               </button>
             </div>
 
-            {/* Error */}
+            {/* Error — announced to screen readers, reserves no space when empty */}
             {error && (
-              <div className="bg-destructive/10 text-destructive border border-destructive/30 rounded-lg px-3 py-2 text-sm">
-                {error}
+              <div
+                role="alert"
+                className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive"
+              >
+                <AlertCircle size={15} className="mt-px shrink-0" aria-hidden="true" />
+                <span>{error}</span>
               </div>
             )}
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full justify-center"
+              className="btn-primary w-full justify-center disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" aria-hidden="true" />
+                  Signing in…
+                </>
+              ) : (
+                'Sign in'
+              )}
             </button>
 
           </form>
         </div>
 
-        <p className="text-center text-sm text-muted-foreground mt-5">
+        <p className="mt-6 text-center text-sm text-muted-foreground">
           Don&apos;t have an account?{' '}
           <button
             type="button"
             onClick={() => setShowSignup(true)}
-            className="text-primary font-medium hover:underline"
+            className="font-medium text-primary hover:underline cursor-pointer"
           >
             Create one
           </button>

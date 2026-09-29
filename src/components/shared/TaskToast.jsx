@@ -129,9 +129,28 @@ export default function TaskToast() {
     if (!shouldPoll) return;
     // Check on mount
     checkNewAssignments();
-    // Poll every 30s
-    const interval = setInterval(checkNewAssignments, 30000);
-    return () => clearInterval(interval);
+
+    // Poll only while the tab is visible - a hidden tab polling every 30s was
+    // pure waste, and this ran alongside the notification bell's own timer.
+    let interval;
+    const start = () => {
+      clearInterval(interval);
+      interval = setInterval(checkNewAssignments, 60000);
+    };
+    const onVisibility = () => {
+      if (document.hidden) {
+        clearInterval(interval);
+      } else {
+        checkNewAssignments();
+        start();
+      }
+    };
+    if (!document.hidden) start();
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [checkNewAssignments, shouldPoll]);
 
   function removeToast(toastId) {

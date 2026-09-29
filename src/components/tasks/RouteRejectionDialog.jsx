@@ -52,7 +52,7 @@ export default function RouteRejectionDialog({ task, onClose, onRouted }) {
             </div>
             <h2 className="text-base font-semibold text-foreground">Route Rejected Task</h2>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={onClose} aria-label="Close" className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         </div>

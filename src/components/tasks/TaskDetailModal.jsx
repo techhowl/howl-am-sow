@@ -84,7 +84,7 @@ function LiveDateDialog({ onConfirm, onCancel, loading }) {
                 <p style={{ fontSize: 11, color: 'var(--muted-foreground)', margin: 0 }}>When will this go live?</p>
               </div>
             </div>
-            <button onClick={onCancel} className="btn-ghost" style={iconBtnStyle}><X size={16} /></button>
+            <button onClick={onCancel} aria-label="Close" className="btn-ghost" style={iconBtnStyle}><X size={16} aria-hidden="true" /></button>
           </div>
           <div style={{ padding: '20px 24px' }}>
             <label className="label">Live Date <span style={{ color: 'var(--muted-foreground)', fontWeight: 400, textTransform: 'none', letterSpacing: 'normal' }}>(leave blank for today)</span></label>
@@ -124,7 +124,7 @@ function RouteFromRejectedDialog({ task, onConfirm, onClose, loading }) {
         <div className="modal" style={{ maxWidth: 380 }} onClick={(e) => e.stopPropagation()}>
           <div className="modal-header">
             <p className="editorial-h2 text-foreground" style={{ margin: 0, fontSize: '1.05rem' }}>Route for Revision</p>
-            <button onClick={onClose} className="btn-ghost" style={iconBtnStyle}><X size={16} /></button>
+            <button onClick={onClose} aria-label="Close" className="btn-ghost" style={iconBtnStyle}><X size={16} aria-hidden="true" /></button>
           </div>
           <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <label className="label">Route back to</label>

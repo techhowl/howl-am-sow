@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'motion/react'
+import { X } from 'lucide-react'
 import RoleBadge from '@/components/shared/RoleBadge'
 import CreateUserModal from '@/components/users/CreateUserModal'
 import { PageHeader } from '@/components/shared/PageHeader'
@@ -31,6 +32,7 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [search, setSearch] = useState('')
+  const [actionError, setActionError] = useState('')
 
   // Superadmin-only route
   useEffect(() => {
@@ -50,6 +52,7 @@ export default function UsersPage() {
   }
 
   async function toggleStatus(userId, current) {
+    setActionError('')
     const res = await fetch(`/api/users/${userId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -59,10 +62,16 @@ export default function UsersPage() {
       setUsers((prev) =>
         prev.map((u) => (u._id === userId ? { ...u, isActive: !current } : u))
       )
+    } else {
+      // Previously failed silently: the row simply did not change and the
+      // admin had no idea why (e.g. "cannot deactivate the last superadmin").
+      const data = await res.json().catch(() => null)
+      setActionError(data?.error || 'Could not update that account.')
     }
   }
 
   async function updateRole(userId, newRole) {
+    setActionError('')
     const res = await fetch(`/api/users/${userId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -74,7 +83,7 @@ export default function UsersPage() {
       )
     } else {
       const data = await res.json().catch(() => null)
-      alert(data?.error || 'Could not update role')
+      setActionError(data?.error || 'Could not update role.')
     }
   }
 
@@ -116,6 +125,23 @@ export default function UsersPage() {
         onChange={(e) => setSearch(e.target.value)}
         className="input mb-4 block w-64"
       />
+
+      {actionError && (
+        <div
+          role="alert"
+          className="mb-4 flex items-start justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive"
+        >
+          <span>{actionError}</span>
+          <button
+            type="button"
+            onClick={() => setActionError('')}
+            aria-label="Dismiss error"
+            className="shrink-0 opacity-70 hover:opacity-100 cursor-pointer"
+          >
+            <X size={14} aria-hidden="true" />
+          </button>
+        </div>
+      )}
 
       {/* Table */}
       <div className="surface-card overflow-hidden">

@@ -97,9 +97,28 @@ export default function NotificationBell() {
     }
   }, [open])
 
+  // Poll for new notifications, but only while the tab is actually visible.
+  // The old timer ran every 30s forever, including in background tabs, so an
+  // idle open tab kept hitting the API (and the database, via auth()) all day.
   useEffect(() => {
-    intervalRef.current = setInterval(() => fetchNotifs(true), 30000)
-    return () => clearInterval(intervalRef.current)
+    function start() {
+      clearInterval(intervalRef.current)
+      intervalRef.current = setInterval(() => fetchNotifs(true), 60000)
+    }
+    function onVisibility() {
+      if (document.hidden) {
+        clearInterval(intervalRef.current)
+      } else {
+        fetchNotifs(true)   // catch up on whatever arrived while hidden
+        start()
+      }
+    }
+    if (!document.hidden) start()
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      clearInterval(intervalRef.current)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
   }, [fetchNotifs])
 
   // Close on outside click

@@ -6,7 +6,7 @@ import connectDB from '@/lib/db/mongoose'
 import BrandMember from '@/lib/db/models/BrandMember'
 import User from '@/lib/db/models/User'
 import Notification from '@/lib/db/models/Notification'
-import { canAssignMembers } from '@/lib/auth/permissions'
+import { canAssignMembers, isManagement } from '@/lib/auth/permissions'
 
 // POST /api/brands/[brandId]/members — assign a user
 export async function POST(req, { params }) {
@@ -66,10 +66,20 @@ export async function POST(req, { params }) {
 
 export async function GET(req, { params }) {
   const session = await auth();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   await connectDB();
   const { brandId } = await params;
+
+  // Management sees any brand's roster. Everyone else may only read the roster
+  // of a brand they are actually on -- previously any signed-in account could
+  // enumerate the members, emails and roles of every brand in the workspace.
+  if (!isManagement(session.user.role)) {
+    const isMember = await BrandMember.exists({ brandId, userId: session.user.id });
+    if (!isMember) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
 
   const members = await BrandMember.find({ brandId })
     .populate("userId", "name email role isActive");

@@ -148,11 +148,11 @@ export default function BrandAnalyticsPage() {
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center border border-border rounded-lg overflow-hidden">
-              <button onClick={() => setRefDate((d) => subMonths(d, 1))} className="p-2 hover:bg-muted transition-colors border-r border-border">
+              <button onClick={() => setRefDate((d) => subMonths(d, 1))} aria-label="Previous month" className="p-2 hover:bg-muted transition-colors border-r border-border cursor-pointer">
                 <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground" />
               </button>
               <span className="text-xs font-semibold text-foreground px-4 min-w-[130px] text-center">{monthLabel}</span>
-              <button onClick={() => setRefDate((d) => addMonths(d, 1))} className="p-2 hover:bg-muted transition-colors border-l border-border">
+              <button onClick={() => setRefDate((d) => addMonths(d, 1))} aria-label="Next month" className="p-2 hover:bg-muted transition-colors border-l border-border cursor-pointer">
                 <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
               </button>
             </div>

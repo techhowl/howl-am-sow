@@ -79,7 +79,7 @@ export default function RejectionDialog({ task, onClose, onRejected }) {
                 </p>
               </div>
             </div>
-            <button onClick={onClose} style={{ padding: 6, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--muted-foreground)', display: 'flex' }}>
+            <button onClick={onClose} aria-label="Close" style={{ padding: 6, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--muted-foreground)', display: 'flex' }}>
               <X size={16} />
             </button>
           </div>

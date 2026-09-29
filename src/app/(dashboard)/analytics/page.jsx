@@ -451,11 +451,11 @@ export default function AnalyticsPage() {
                 ))}
               </div>
               <div className="flex items-center border border-border rounded-lg overflow-hidden">
-                <button onClick={prev} className="p-2 hover:bg-muted transition-colors border-r border-border">
+                <button onClick={prev} aria-label="Previous period" className="p-2 hover:bg-muted transition-colors border-r border-border cursor-pointer">
                   <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground" />
                 </button>
                 <span className="text-xs font-medium text-foreground px-4 min-w-35 text-center">{periodLabel}</span>
-                <button onClick={next} className="p-2 hover:bg-muted transition-colors border-l border-border">
+                <button onClick={next} aria-label="Next period" className="p-2 hover:bg-muted transition-colors border-l border-border cursor-pointer">
                   <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
                 </button>
               </div>
