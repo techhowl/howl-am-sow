@@ -42,7 +42,7 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="fixed top-0 left-0 h-screen flex flex-col z-40 bg-sidebar text-sidebar-foreground border-r border-sidebar-border backdrop-blur-xl"
+      className="fixed top-0 left-0 h-screen flex flex-col z-40 bg-sidebar text-sidebar-foreground border-r border-sidebar-border"
       style={{ width: '220px' }}
     >
       {/* Logo + Bell */}

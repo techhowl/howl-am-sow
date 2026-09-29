@@ -143,7 +143,7 @@ export default function TimelinePage() {
     <div className="flex flex-col h-full overflow-hidden bg-background">
 
       {/* Header */}
-      <div className="relative shrink-0 overflow-hidden px-6 pt-6 pb-4 border-b border-border bg-card backdrop-blur-xl">
+      <div className="relative shrink-0 overflow-hidden px-6 pt-6 pb-4 border-b border-border bg-card">
         {/* Ambient brand gradient */}
         <div className="pointer-events-none absolute inset-0 opacity-60">
           <AnimatedGradient colors={HEADER_GRADIENT} speed={0.01} blur="heavy" />

@@ -347,8 +347,12 @@
   border-radius: var(--radius-xl);
   border: 1px solid var(--glass-rim);
   background: linear-gradient(180deg, oklch(1 0 0 / 0.12), transparent 38%), var(--card);
-  -webkit-backdrop-filter: blur(10px) saturate(150%);
-          backdrop-filter: blur(10px) saturate(150%);
+  /* No backdrop-filter here by design. These surfaces sit over the aurora,
+     which is a smooth static gradient - blurring a smooth gradient produces a
+     near-identical image, so the blur was invisible while still forcing the
+     compositor to re-sample and re-filter the backdrop for every card on
+     screen. Surface opacity was raised instead. Modals keep their blur,
+     because real content sits behind those. */
   box-shadow:
     inset 0 1px 1px var(--glass-rim),
     inset 0 -1px 1px oklch(1 0 0 / 0.06),
@@ -356,8 +360,8 @@
   isolation: isolate;
   transition: box-shadow 0.4s var(--ease-glass), border-color 0.4s var(--ease-glass), transform 0.4s var(--ease-glass);
 }
-.glass-thin  { background: linear-gradient(180deg, oklch(1 0 0 / 0.10), transparent 38%), var(--secondary); backdrop-filter: blur(8px) saturate(135%); -webkit-backdrop-filter: blur(8px) saturate(135%); }
-.glass-thick { background: linear-gradient(180deg, oklch(1 0 0 / 0.12), transparent 38%), var(--popover);   backdrop-filter: blur(16px) saturate(155%); -webkit-backdrop-filter: blur(16px) saturate(155%); }
+.glass-thin  { background: linear-gradient(180deg, oklch(1 0 0 / 0.10), transparent 38%), var(--secondary); }
+.glass-thick { background: linear-gradient(180deg, oklch(1 0 0 / 0.12), transparent 38%), var(--popover); }
 
 .dark .glass, .dark .glass-thick, .dark .surface-card {
   box-shadow:
@@ -409,7 +413,6 @@
   background: color-mix(in oklab, var(--primary) 14%, transparent);
   border: 1px solid color-mix(in oklab, var(--primary) 30%, transparent);
   box-shadow: 0 0 24px color-mix(in oklab, var(--primary) 30%, transparent), inset 0 1px 1px var(--glass-rim);
-  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
   animation: float-gentle 4s var(--ease-glass) infinite;
 }
 .dashed-quiet {
@@ -550,7 +553,6 @@
   border-radius: var(--radius-md);
   color: var(--foreground);
   font-size: 13px; padding: 9px 12px; font-family: inherit;
-  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
   box-shadow: inset 0 1px 1px oklch(1 0 0 / 0.06);
   transition: border-color 0.2s var(--ease-glass), box-shadow 0.2s var(--ease-glass), background 0.2s var(--ease-glass);
 }

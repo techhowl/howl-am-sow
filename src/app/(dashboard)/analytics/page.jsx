@@ -432,7 +432,7 @@ export default function AnalyticsPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-card border-b border-border px-6 py-5 backdrop-blur-xl">
+      <div className="bg-card border-b border-border px-6 py-5">
         <PageHeader
           className="mb-0"
           eyebrow="ANALYTICS"
@@ -606,7 +606,7 @@ export default function AnalyticsPage() {
                     <p className="text-xs text-muted-foreground mt-0.5">Click a brand for detailed breakdown</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1.5 bg-card border border-border rounded-lg px-3 py-1.5 backdrop-blur-md">
+                    <div className="flex items-center gap-1.5 bg-card border border-border rounded-lg px-3 py-1.5">
                       <Filter className="w-3 h-3 text-muted-foreground" />
                       <select value={healthFilter} onChange={(e) => setHealthFilter(e.target.value)}
                         className="text-xs bg-transparent border-none outline-none text-foreground cursor-pointer">
@@ -619,7 +619,7 @@ export default function AnalyticsPage() {
                         <option value="inactive">Inactive</option>
                       </select>
                     </div>
-                    <div className="flex items-center gap-1.5 bg-card border border-border rounded-lg px-3 py-1.5 backdrop-blur-md">
+                    <div className="flex items-center gap-1.5 bg-card border border-border rounded-lg px-3 py-1.5">
                       <ArrowUpDown className="w-3 h-3 text-muted-foreground" />
                       <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}
                         className="text-xs bg-transparent border-none outline-none text-foreground cursor-pointer">
