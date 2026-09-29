@@ -11,6 +11,8 @@ export const ROLES = {
   DESIGNER: 'designer',
   COPYWRITER: 'copywriter',
   MOTION_DESIGNER: 'motion_designer',
+  VIDEO_EDITOR: 'video_editor',
+  WEB_DEVELOPER: 'web_developer',
   USER: 'user',
 }
 
@@ -48,6 +50,8 @@ export const RBAC_ROLES = [
   'designer',
   'copywriter',
   'motion_designer',
+  'video_editor',
+  'web_developer',
 ]
 
 // Roles AM is allowed to create
@@ -56,6 +60,8 @@ export const AM_CREATABLE_ROLES = [
   'designer',
   'copywriter',
   'motion_designer',
+  'video_editor',
+  'web_developer',
 ]
 
 // Roles Admin is allowed to create
@@ -69,6 +75,8 @@ export const ADMIN_CREATABLE_ROLES = [
   'designer',
   'copywriter',
   'motion_designer',
+  'video_editor',
+  'web_developer',
 ]
 
 // Roles Superadmin is allowed to create (all RBAC roles; not superadmin, not user)
@@ -86,6 +94,8 @@ export const ROLE_LABELS = {
   designer:              'Designer',
   copywriter:            'Copywriter',
   motion_designer:       'Motion Designer',
+  video_editor:          'Video Editor',
+  web_developer:         'Web Developer',
   user:                  'User',
 }
 
@@ -146,7 +156,7 @@ export function canAddCopies(role) {
 }
 
 export function canAddAssets(role) {
-  return [...MANAGEMENT_ROLES, 'designer', 'motion_designer'].includes(role)
+  return [...MANAGEMENT_ROLES, 'designer', 'motion_designer', 'video_editor', 'web_developer'].includes(role)
 }
 
 export function canRouteRejection(role) {
@@ -173,6 +183,8 @@ export function canPerformAction(role, action) {
     designer: [],
     copywriter: [],
     motion_designer: [],
+    video_editor: [],
+    web_developer: [],
     user: [],
   };
 

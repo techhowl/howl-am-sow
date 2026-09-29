@@ -33,6 +33,8 @@ const UserSchema = new mongoose.Schema(
         'designer',
         'copywriter',
         'motion_designer',
+        'video_editor',
+        'web_developer',
         'user',
       ],
       required: true,

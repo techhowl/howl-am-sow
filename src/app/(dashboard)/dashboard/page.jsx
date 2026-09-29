@@ -5,21 +5,8 @@ import Brand from '@/lib/db/models/Brand'
 import Task from '@/lib/db/models/Task'
 import BrandMember from '@/lib/db/models/BrandMember'
 import { AdminDashboardClient, EmployeeDashboardClient } from './DashboardClient'
-import { isManagement } from '@/lib/auth/permissions'
+import { isManagement, ROLE_LABELS } from '@/lib/auth/permissions'
 
-const ROLE_LABELS = {
-  superadmin:            'Super Admin',
-  admin:                 'Admin',
-  account_manager:       'Account Manager',
-  management_trainee_am: 'Management Trainee AM',
-  executive_am:          'Executive AM',
-  senior_am:             'Senior AM',
-  lead_am:               'Lead AM',
-  designer:              'Designer',
-  copywriter:            'Copywriter',
-  motion_designer:       'Motion Designer',
-  user:                  'User',
-}
 
 const STATUS_LABELS = {
   copy_wip:        'Copy WIP',
