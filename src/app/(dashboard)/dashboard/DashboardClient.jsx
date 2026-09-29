@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import Link from 'next/link';
 import { 
   Layers, Zap, Clock, CheckCircle2, RotateCcw, 
@@ -85,11 +85,11 @@ function TaskItem({ task, index }) {
   };
 
   const STATUS_COLORS = {
-    copy_wip: 'bg-[--color-chart-4]/15 text-[--color-chart-4]',
-    video_wip: 'bg-[--color-chart-5]/15 text-[--color-chart-5]',
-    design_wip: 'bg-[--color-chart-2]/15 text-[--color-chart-2]',
+    copy_wip: 'bg-[var(--color-chart-4)]/15 text-[var(--color-chart-4)]',
+    video_wip: 'bg-[var(--color-chart-5)]/15 text-[var(--color-chart-5)]',
+    design_wip: 'bg-[var(--color-chart-2)]/15 text-[var(--color-chart-2)]',
     internal_review: 'bg-warning/10 text-warning',
-    sent_to_client: 'bg-[--color-chart-1]/15 text-[--color-chart-1]',
+    sent_to_client: 'bg-[var(--color-chart-1)]/15 text-[var(--color-chart-1)]',
     approved: 'bg-success/10 text-success',
     rejected: 'bg-destructive/10 text-destructive',
     live: 'bg-success/10 text-success',

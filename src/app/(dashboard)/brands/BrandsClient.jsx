@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Building2, Plus, Search } from 'lucide-react';
 import { canManageBrands } from '@/lib/auth/permissions';
 import CreateBrandModal from '@/components/brands/CreateBrandModal';

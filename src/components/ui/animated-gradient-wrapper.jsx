@@ -1,20 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { AnimatedGradient } from './animated-gradient-with-svg';
 
-// Client-only wrapper to prevent hydration mismatches
+/**
+ * Historically this gated rendering behind a mount flag, because the old
+ * SVG implementation measured its container on the client and produced a
+ * hydration mismatch. The gradient is now pure deterministic CSS that renders
+ * identically on server and client, so the gate is gone — it only delayed
+ * paint and caused a visible flash on first load.
+ */
 export function AnimatedGradientWrapper(props) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    // Return a placeholder with the same dimensions to prevent layout shift
-    return <div className="absolute inset-0" />;
-  }
-
   return <AnimatedGradient {...props} />;
 }

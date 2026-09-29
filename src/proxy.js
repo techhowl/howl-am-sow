@@ -5,8 +5,15 @@ import { NextResponse } from 'next/server'
 
 export default auth((req) => {
   const { pathname } = req.nextUrl
-  const isLoggedIn = !!req.auth
-  const role = req.auth?.user?.role
+
+  // Read the user off the session rather than testing `req.auth` for truthiness.
+  // When auth fails to resolve (misconfiguration, transient error) next-auth puts
+  // an *error object* on req.auth, which is truthy but has no `user`. Treating
+  // that as "logged in with no role" bounced every anonymous visitor to /pending
+  // and made the public landing page unreachable.
+  const sessionUser = req.auth?.user
+  const isLoggedIn = Boolean(sessionUser?.id)
+  const role = sessionUser?.role
 
   // 'user' is the holding state for a freshly registered account that a
   // superadmin has not granted a role to yet — it must not reach any app data.
@@ -62,5 +69,5 @@ export default auth((req) => {
 })
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\..*).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)'],
 }

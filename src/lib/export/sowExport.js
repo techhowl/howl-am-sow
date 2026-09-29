@@ -3,9 +3,11 @@
 // Consumed by SOWTab's export buttons. Keep number/label shape in sync with
 // the SOW table (Particulars, Scope, Delivered, Unit ₹, Scope ₹, Delivered ₹, Variance).
 
-import { jsPDF } from 'jspdf'
-import autoTable from 'jspdf-autotable'
 import { formatUnits } from '@/components/brands/sow/sowFormat'
+
+// jsPDF + autoTable are ~1MB of parser and font data and are only needed when
+// someone actually exports. Importing them at module scope pulled that weight
+// into the brand page's first load for every visitor. Loaded on demand instead.
 
 // Violet brand theme mapped to print-safe RGB (oklch tokens won't render in PDF).
 const THEME = {
@@ -112,7 +114,11 @@ export function exportSowCsv(input) {
 }
 
 // ── PDF ───────────────────────────────────────────────────────────────
-export function exportSowPdf(input) {
+export async function exportSowPdf(input) {
+  const [{ jsPDF }, { default: autoTable }] = await Promise.all([
+    import('jspdf'),
+    import('jspdf-autotable'),
+  ])
   const m = buildModel(input)
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' })
   const pageW = doc.internal.pageSize.getWidth()

@@ -14,9 +14,11 @@ import { exportSowCsv, exportSowPdf } from '@/lib/export/sowExport'
 export function SowExportMenu({ getData, disabled }) {
   const [open, setOpen] = useState(false)
 
-  function run(fn) {
+  // exportSowPdf is async (it lazy-loads jsPDF), so this must await --
+  // a sync try/catch would not catch a rejected promise.
+  async function run(fn) {
     try {
-      fn(getData())
+      await fn(getData())
     } catch (err) {
       console.error('SOW export failed:', err)
     }
