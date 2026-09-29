@@ -157,7 +157,7 @@ function Step2({ sowItems, setSowItems }) {
               </button>
             ))}
             <button type="button" onClick={() => setShowCustomInput(true)}
-              style={{ padding: '5px 12px', fontSize: 12, fontWeight: 500, border: '1px dashed #c4b5fd', borderRadius: 99, background: '#faf5ff', color: '#7c3aed', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+              style={{ padding: '5px 12px', fontSize: 12, fontWeight: 500, border: '1px dashed color-mix(in oklab, var(--primary) 45%, transparent)', borderRadius: 99, background: 'color-mix(in oklab, var(--primary) 12%, transparent)', color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
             >
               <Sparkles size={10} />Custom type
             </button>
@@ -206,7 +206,7 @@ function Step2({ sowItems, setSowItems }) {
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
                   <p style={{ fontSize: 12, fontWeight: 500, color: 'var(--foreground)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item.type}>{item.type}</p>
-                  {item.isCustom && <span style={{ fontSize: 8, fontWeight: 600, padding: '1px 5px', borderRadius: 99, background: '#f3e8ff', color: '#7c3aed', border: '1px solid #e9d5ff', flexShrink: 0 }}>NEW</span>}
+                  {item.isCustom && <span style={{ fontSize: 8, fontWeight: 600, padding: '1px 5px', borderRadius: 99, background: 'color-mix(in oklab, var(--primary) 16%, transparent)', color: 'var(--primary)', border: '1px solid color-mix(in oklab, var(--primary) 35%, transparent)', flexShrink: 0 }}>NEW</span>}
                 </div>
                 <input
                   type="number" step="0.01" min="0" value={item.target}

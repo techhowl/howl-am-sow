@@ -75,6 +75,10 @@
    ────────────────────────────────────────────────────────────────────────── */
 :root,
 .light {
+  /* Tells the browser to draw OS-rendered UI in light mode: <select> dropdown
+     popups, date pickers, scrollbars, checkboxes, radios, autofill. */
+  color-scheme: light;
+
   /* HOWL brand: violet (HOW) · rose-coral (sun) · periwinkle (wolf) · deep purple (mountains) */
   --bg-base: oklch(0.97 0.012 300);
   --background: transparent;          /* page wrappers let the aurora show through */
@@ -137,6 +141,12 @@
    .dark — "Midnight Aurora" (primary look)
    ────────────────────────────────────────────────────────────────────────── */
 .dark {
+  /* Without this the browser drew every native control light: <select> option
+     popups came out white, and because option text inherits the near-white
+     --foreground, the list was white-on-white and effectively invisible.
+     Date pickers and scrollbars had the same problem. */
+  color-scheme: dark;
+
   /* HOWL brand on deep purple-night */
   --bg-base: oklch(0.17 0.04 295);
   --background: transparent;
@@ -557,11 +567,38 @@
   transition: border-color 0.2s var(--ease-glass), box-shadow 0.2s var(--ease-glass), background 0.2s var(--ease-glass);
 }
 .input::placeholder { color: var(--muted-foreground); }
+
+/* Chrome paints autofilled fields with its own background, which `background`
+   cannot override - in dark mode that came out as a pale blue block with
+   near-white text on it. The inset shadow is the only reliable way to repaint
+   it, and the long transition keeps Chrome from flashing its colour back. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: var(--foreground);
+  -webkit-box-shadow: inset 0 0 0 1000px var(--bg-base);
+          box-shadow: inset 0 0 0 1000px var(--bg-base);
+  caret-color: var(--foreground);
+  border-color: var(--border);
+  transition: background-color 9999s ease-out 0s;
+}
 .input:focus {
   outline: none;
   border-color: var(--ring);
   background: color-mix(in oklab, var(--input) 80%, var(--primary) 6%);
   box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 30%, transparent), 0 0 16px color-mix(in oklab, var(--ring) 30%, transparent);
+}
+
+/* Native <select> popups are drawn by the OS. color-scheme above handles most
+   platforms; these give the list an explicit, fully opaque pair so it can never
+   fall back to white-on-white. --card/--popover carry alpha, so use --bg-base. */
+select option,
+select optgroup {
+  background-color: var(--bg-base);
+  color: var(--foreground);
 }
 
 .label { display: block; font-size: 11px; font-weight: 600; color: var(--muted-foreground); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
